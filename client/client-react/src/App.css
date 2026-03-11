@@ -1,0 +1,1904 @@
+/* ============================================================
+   Reset & variables globales
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Palette Hydro-Québec Mission 2035 (utilisée pour le mode jour & la carte) */
+  --hq-navy:       #0f096c;
+  --hq-blue:       #1224b8;
+  --hq-orange:     #ff9b00;
+  --hq-alice:      #e7f1fc;
+  --hq-light:      #f3f8fd;
+  --hq-tropical:   #cfe3fa;
+
+  /* Thème nuit (défaut des panneaux) */
+  --accent:        #ffb703;
+  --danger:        #ef4444;
+  --success:       #22c55e;
+  --muted:         rgba(255,255,255,0.5);
+  --glass:         rgba(7, 18, 38, 0.85);
+  --glass-border:  rgba(255,255,255,0.10);
+  --turbine-speed: 3s;
+  --smoke-opacity: 0.4;
+}
+
+body, html, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  font-size: 14px;
+  color: #e6f2ff;
+}
+
+/* ============================================================
+   App root
+   ============================================================ */
+.app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ============================================================
+   Viewport plein écran (fond dynamique jour/nuit)
+   ============================================================ */
+.map-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  /* Fond nuit — navy HQ */
+  background: linear-gradient(180deg, #060920 0%, #0f096c 100%);
+  transition: background 0.7s ease;
+}
+.app--day .map-viewport {
+  background: linear-gradient(180deg, #1a60c8 0%, #4aa8f0 45%, #a0d8f8 100%);
+}
+.map-viewport:active { cursor: grabbing; }
+
+/* ============================================================
+   Panner (déplacé via JS direct, will-change pour perf)
+   ============================================================ */
+.map-panner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+/* ============================================================
+   Carte 3D (perspective style RollerCoaster Tycoon)
+   ============================================================ */
+.game-map-container {
+  /* Aucun style propre — perspective portée par game-map */
+}
+
+.game-map {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 80px);
+  grid-template-rows:    repeat(var(--rows), 80px);
+  gap: 1px;
+  background: #0a0840; /* Séparateurs navy entre tuiles */
+  box-shadow: 0 12px 48px rgba(6,9,32,0.60);
+}
+
+/* ============================================================
+   Tuiles — textures riches
+   ============================================================ */
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  transition: filter 0.1s;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.20), inset -2px 0 0 rgba(0,0,0,0.12);
+}
+
+.tile:hover { filter: brightness(1.18); }
+
+/* ══════════════════════════════════════════════════════════════
+   Tuiles — style cartoon top-down, couleurs saturées
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Herbe ── */
+.tile--empty {
+  background:
+    /* Micro-texture crosshatch */
+    repeating-linear-gradient( 45deg, transparent 0, transparent 4px, rgba(75,155,15,0.22) 4px, rgba(75,155,15,0.22) 5px),
+    repeating-linear-gradient(-45deg, transparent 0, transparent 4px, rgba(50,125,10,0.16) 4px, rgba(50,125,10,0.16) 5px),
+    /* Dégradé de base */
+    linear-gradient(180deg, #92d840 0%, #6ab830 48%, #52a020 100%);
+}
+/* Rang de brins avant (sombre) */
+.tile--empty::before {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; right: 0; height: 36%;
+  background: #3a8010;
+  clip-path: polygon(
+    0% 100%,
+    1% 55%, 4% 88%, 8% 22%, 12% 70%, 15% 100%,
+    19% 42%, 23% 80%, 27% 8%,  31% 62%, 35% 100%,
+    39% 50%, 43% 84%, 47% 16%, 51% 68%, 55% 100%,
+    59% 45%, 63% 82%, 67% 10%, 71% 66%, 75% 100%,
+    79% 48%, 83% 80%, 87% 14%, 91% 60%, 95% 92%,
+    100% 100%
+  );
+  pointer-events: none; z-index: 0;
+}
+/* Rang de brins mi-plan (plus clairs) */
+.tile--empty::after {
+  content: ''; position: absolute;
+  bottom: 18%; left: 2%; right: 2%; height: 22%;
+  background: #7ed030;
+  clip-path: polygon(
+    0% 100%,
+    3% 40%, 7% 78%, 12% 6%,  16% 58%, 20% 100%,
+    25% 32%, 30% 72%, 35% 4%,  40% 56%, 45% 100%,
+    50% 38%, 55% 76%, 60% 12%, 65% 60%, 70% 100%,
+    75% 34%, 80% 72%, 85% 6%,  90% 54%, 95% 82%,
+    100% 100%
+  );
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Forêt — 3 arbres distincts ── */
+.tile--forest {
+  background: #152606; /* sol sombre */
+}
+/* 3 couronnes via radial-gradient empilés */
+.tile--forest::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    /* Arbre gauche */
+    radial-gradient(circle 20px at 26% 58%, #7cd828 0%, #46980e 40%, #1e5206 65%, transparent 80%),
+    /* Arbre droit */
+    radial-gradient(circle 18px at 74% 62%, #70cc22 0%, #408c0a 42%, #1a4c04 68%, transparent 82%),
+    /* Arbre central (dominant) */
+    radial-gradient(circle 28px at 50% 46%, #90e030 0%, #52a816 38%, #286e08 60%, #0e3a02 78%, transparent 92%),
+    /* Sol */
+    #152606;
+  pointer-events: none; z-index: 0;
+}
+/* Reflets lumineux sur les canopées */
+.tile--forest::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle 7px at 24% 50%, rgba(200,255,100,0.55) 0%, transparent 100%),
+    radial-gradient(circle 5px at 72% 54%, rgba(190,255,90,0.45)  0%, transparent 100%),
+    radial-gradient(circle 9px at 48% 36%, rgba(220,255,120,0.60) 0%, transparent 100%);
+  pointer-events: none; z-index: 1;
+}
+
+/* ── Montagne — strates rocheuses + neige ── */
+.tile--mountain {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      #9298a8  0px, #9298a8 12px,
+      #686878 12px, #686878 13px,  /* joint dur */
+      #888898 13px, #888898 25px,
+      #606070 25px, #606070 26px,  /* joint dur */
+      #9298a8 26px
+    );
+  box-shadow:
+    inset  8px 0 16px rgba(255,255,255,0.14),
+    inset -8px 0 16px rgba(0,0,0,0.22),
+    inset 0 -8px 14px rgba(0,0,0,0.36),
+    inset 0  6px  8px rgba(255,255,255,0.18);
+}
+/* Gradient lumière/ombre diagonal */
+.tile--mountain::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 46%),
+    linear-gradient(315deg, rgba(0,0,0,0.28) 0%, transparent 46%);
+  pointer-events: none; z-index: 1;
+}
+/* Calotte neigeuse dentelée */
+.tile--mountain::after {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 44%;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f0ff 55%, rgba(230,238,255,0) 100%);
+  clip-path: polygon(
+    0%  100%, 0%  72%, 10% 48%, 18% 62%, 30% 28%,
+    42% 52%, 50%  6%, 58% 48%, 70% 26%, 82% 56%,
+    90% 40%, 100% 68%, 100% 100%
+  );
+  pointer-events: none; z-index: 2;
+}
+
+/* ── Rivière — eau bleue animée ── */
+.tile--river {
+  background: linear-gradient(180deg, #1e78f0 0%, #2e8cff 50%, #1464d0 100%);
+  animation: riverShimmer 3s ease-in-out infinite;
+  cursor: default;
+}
+/* Stries diagonales mobiles (élément oversized) */
+.tile--river::before {
+  content: ''; position: absolute;
+  top: -80px; left: -80px;
+  width: calc(100% + 160px);
+  height: calc(100% + 160px);
+  background: repeating-linear-gradient(
+    -32deg,
+    rgba(255,255,255,0.16) 0px, rgba(255,255,255,0.16)  3px,
+    transparent             3px, transparent             12px,
+    rgba(255,255,255,0.08) 12px, rgba(255,255,255,0.08) 14px,
+    transparent            14px, transparent             22px
+  );
+  animation: riverWave 1.8s linear infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+/* Reflets brillants */
+.tile--river::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 55% 16% at 38% 30%, rgba(255,255,255,0.38) 0%, transparent 100%),
+    radial-gradient(ellipse 38% 10% at 65% 68%, rgba(255,255,255,0.24) 0%, transparent 100%);
+  pointer-events: none;
+}
+@keyframes riverShimmer {
+  0%,100% { filter: brightness(1.0) saturate(1.00); }
+  50%      { filter: brightness(1.12) saturate(1.25); }
+}
+@keyframes riverWave {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(32px, 20px); }
+}
+
+/* ── Ville — routes + bâtiments ── */
+.tile--city {
+  background:
+    /* Grille de routes */
+    linear-gradient(90deg, rgba(40,40,60,0.14) 0, rgba(40,40,60,0.14) 1px, transparent 1px, transparent 24px) 0 0 / 24px 24px,
+    linear-gradient(0deg,  rgba(40,40,60,0.14) 0, rgba(40,40,60,0.14) 1px, transparent 1px, transparent 24px) 0 0 / 24px 24px,
+    /* Reflet doux en haut-gauche */
+    linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 42%),
+    /* Trottoir/béton */
+    #b4bccf;
+  cursor: default;
+}
+/* Maison gauche — façade brique + 4 fenêtres */
+.tile--city::before {
+  content: ''; position: absolute;
+  bottom: 8%; left: 5%;
+  width: 38%; height: 54%;
+  background:
+    /* Fenêtre haut gauche */  radial-gradient(circle 5px at 28% 42%, rgba(255,248,140,0.85) 0%, transparent 60%),
+    /* Fenêtre haut droit */   radial-gradient(circle 5px at 72% 42%, rgba(255,248,140,0.85) 0%, transparent 60%),
+    /* Fenêtre bas gauche */   radial-gradient(circle 5px at 28% 68%, rgba(255,248,140,0.75) 0%, transparent 60%),
+    /* Fenêtre bas droit */    radial-gradient(circle 5px at 72% 68%, rgba(255,248,140,0.75) 0%, transparent 60%),
+    /* Façade brique */
+    linear-gradient(180deg, #d86040 0%, #b84828 100%);
+  clip-path: polygon(0% 42%, 50% 0%, 100% 42%, 100% 100%, 0% 100%);
+  pointer-events: none; z-index: 1;
+}
+/* Tour droite — 3 étages de fenêtres bleues */
+.tile--city::after {
+  content: ''; position: absolute;
+  bottom: 8%; right: 6%;
+  width: 28%; height: 62%;
+  background:
+    radial-gradient(circle 4px at 50% 76%, rgba(180,220,255,0.80) 0%, transparent 60%),
+    radial-gradient(circle 4px at 50% 58%, rgba(180,220,255,0.70) 0%, transparent 60%),
+    radial-gradient(circle 4px at 50% 40%, rgba(180,220,255,0.60) 0%, transparent 60%),
+    linear-gradient(180deg, #8898b8 0%, #6070a0 100%);
+  clip-path: polygon(0% 28%, 50% 0%, 100% 28%, 100% 100%, 0% 100%);
+  pointer-events: none; z-index: 1;
+}
+.tile--city:hover, .tile--river:hover { filter: none; }
+
+/* ── Overlay stress déficit (tuiles ville en manque d'énergie) ── */
+.tile__stress-overlay {
+  position: absolute; inset: 0;
+  z-index: 3;
+  background: rgba(239,68,68,0.28);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: rgba(255,60,60,0.95);
+  text-shadow: 0 0 8px rgba(0,0,0,0.70), 0 1px 0 rgba(0,0,0,0.50);
+  animation: stressPulse 1.4s ease-in-out infinite;
+}
+@keyframes stressPulse {
+  0%,100% { background: rgba(239,68,68,0.18); }
+  50%      { background: rgba(239,68,68,0.42); }
+}
+
+/* Icône de fond (arbre, montagne…) */
+.tile__bg-icon {
+  font-size: clamp(18px, 2.8vw, 32px);
+  opacity: 0.85;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Conteneur du sprite bâtiment */
+.tile__building {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  filter: drop-shadow(0 6px 5px rgba(0,0,0,0.50));
+  transition: filter 0.1s;
+}
+.tile:hover .tile__building {
+  filter: drop-shadow(0 8px 6px rgba(0,0,0,0.60)) brightness(1.12);
+}
+
+/* Placement */
+.tile--placeable {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  cursor: crosshair;
+}
+.tile--placeable:hover { filter: brightness(1.25); outline-color: #fff; }
+
+.tile--blocked  { opacity: 0.50; cursor: not-allowed; }
+.tile--sell-target {
+  outline: 3px solid #f97316;
+  outline-offset: -3px;
+  animation: sellPulse 1s ease infinite alternate;
+}
+@keyframes sellPulse {
+  from { outline-color: #f97316; }
+  to   { outline-color: #fbbf24; }
+}
+
+/* ============================================================
+   Header — overlay centré en haut
+   ============================================================ */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 110;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 5px 22px 7px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.app-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.app-header__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+.app-header__day {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e6f2ff;
+  background: rgba(255,255,255,0.08);
+  padding: 2px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.app-header__subtitle {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 1px;
+}
+
+/* ============================================================
+   Panneaux latéraux — glassmorphism
+   ============================================================ */
+.building-panel,
+.hud {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  width: 205px;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 10px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Scrollbar discrète */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.building-panel::-webkit-scrollbar,
+.hud::-webkit-scrollbar { width: 3px; }
+.building-panel::-webkit-scrollbar-thumb,
+.hud::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.building-panel { left: 8px; }
+.hud            { right: 8px; }
+
+/* Titres des panneaux */
+.building-panel__title,
+.hud__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.building-panel__hint {
+  font-size: 0.70rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   BuildingPanel — boutons de construction
+   ============================================================ */
+.building-panel__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.build-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.06);
+  color: #e6f2ff;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.build-btn:hover         { background: rgba(255,183,3,0.15); border-color: var(--accent); }
+.build-btn--selected     { background: rgba(255,183,3,0.22); border-color: var(--accent); }
+.build-btn--poor         { opacity: 0.45; cursor: not-allowed; }
+.build-btn--poor:hover   { background: rgba(255,255,255,0.06); border-color: transparent; }
+.build-btn--cancel {
+  background: rgba(239,68,68,0.12);
+  border-color: var(--danger);
+  color: var(--danger);
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 5px;
+}
+
+.build-btn__emoji  { font-size: 1.3rem; flex-shrink: 0; }
+.build-btn__info   { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.build-btn__label  { font-weight: 600; font-size: 0.80rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.build-btn__desc   { font-size: 0.67rem; color: var(--muted); line-height: 1.2; }
+.build-btn__cost   { font-weight: 700; font-size: 0.82rem; flex-shrink: 0; color: var(--accent); }
+.build-btn__cost--discount { display: flex; flex-direction: column; align-items: flex-end; }
+.build-btn__cost-old { font-weight: 400; font-size: 0.68rem; opacity: 0.55; }
+
+/* Erreur de placement */
+.placement-error {
+  padding: 5px 8px;
+  background: rgba(239,68,68,0.12);
+  border-left: 3px solid var(--danger);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+/* Bouton vente énergie */
+.building-panel__sell { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; }
+.sell-btn {
+  width: 100%;
+  padding: 7px;
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255,183,3,0.10);
+  color: #e6f2ff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 0.15s;
+  line-height: 1.4;
+  text-align: center;
+}
+.sell-btn:hover:not(:disabled) { background: rgba(255,183,3,0.25); }
+.sell-btn:disabled              { opacity: 0.35; cursor: not-allowed; }
+.sell-btn__amount               { font-size: 0.70rem; font-weight: 400; color: var(--muted); }
+
+/* Panneau vente bâtiment */
+.sell-panel {
+  background: rgba(249,115,22,0.10);
+  border: 1.5px solid #f97316;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sell-panel__title  { font-size: 0.82rem; font-weight: 700; color: #fbbf24; }
+.sell-panel__info   { font-size: 0.72rem; color: rgba(255,255,255,0.7); line-height: 1.4; }
+.sell-panel__refund { font-size: 0.82rem; font-weight: 700; color: #22c55e; }
+.sell-panel__btns   { display: flex; gap: 6px; }
+.sell-panel__btn {
+  flex: 1;
+  padding: 5px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  transition: filter 0.15s;
+}
+.sell-panel__btn--confirm { background: #22c55e; color: #071226; }
+.sell-panel__btn--cancel  { background: transparent; border-color: rgba(255,255,255,0.2); color: #e6f2ff; }
+.sell-panel__btn:hover    { filter: brightness(1.12); }
+
+/* Aide rapide */
+.help-toggle {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  font-family: inherit;
+  font-size: 0.74rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.help-toggle:hover { color: #e6f2ff; border-color: rgba(255,255,255,0.25); }
+
+.help-panel {
+  padding: 7px 9px;
+  background: rgba(96,165,250,0.07);
+  border: 1px solid rgba(96,165,250,0.18);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.help-panel__tip {
+  font-size: 0.70rem;
+  line-height: 1.4;
+  color: rgba(255,255,255,0.75);
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+.hud__time {
+  font-size: 0.80rem;
+  font-weight: 600;
+  padding: 3px 7px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 5px;
+  text-align: center;
+}
+
+.hud__section {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 5px;
+  margin-top: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hud__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.80);
+}
+.hud__stat strong { font-size: 0.84rem; color: #e6f2ff; }
+.hud__stat--small { font-size: 0.70rem; color: var(--muted); }
+
+.hud__progress {
+  height: 5px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hud__progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease, background 0.6s ease;
+}
+.hud__progress-bar--blue   { background: #3b82f6 !important; }
+.hud__progress-bar--orange { background: #f97316 !important; }
+
+/* Section effets événement actif dans le HUD */
+.hud__event-effects {
+  border-radius: 7px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.hud__event-effects--neg {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+}
+.hud__event-effects--pos {
+  background: rgba(34, 197, 94, 0.10);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.hud__event-effects__title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #e6f2ff;
+  margin-bottom: 2px;
+}
+.hud__event-effects--neg .hud__event-effects__title { color: #fca5a5; }
+.hud__event-effects--pos .hud__event-effects__title { color: #86efac; }
+.hud__event-effects__line {
+  font-size: 0.70rem;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.3;
+}
+
+.hud__health-hint {
+  font-size: 0.70rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.hud__hint {
+  margin-top: 1px;
+  font-size: 0.68rem;
+  font-style: italic;
+  opacity: 0.85;
+}
+.hud__hint--warn { color: #fbbf24; }
+.hud__hint--tip  { color: #60a5fa; }
+
+.hud__detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.70);
+  padding: 1px 0;
+}
+.hud__detail-row--muted { opacity: 0.40; }
+.hud__detail-row--geo   { color: #fb923c; } /* orange géothermie */
+
+.hud__obj-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.70rem;
+  color: rgba(255,255,255,0.65);
+}
+.hud__obj-item .hud__progress { flex: 1; }
+.hud__objective-bars { margin-top: 3px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Indicateur de vent */
+.wind-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.wind-indicator__compass {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+}
+/* Points cardinaux */
+.wind-indicator__compass::before {
+  content: '▲';
+  position: absolute;
+  top: -1px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 6px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1;
+}
+.wind-indicator__arrow {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 2px;
+  height: 14px;
+  background: linear-gradient(to top, transparent 20%, #60a5fa 100%);
+  transform-origin: bottom center;
+  margin-left: -1px;
+  margin-top: -14px;
+  border-radius: 1px;
+}
+.wind-indicator__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wind-indicator__dir {
+  font-size: 0.80rem;
+  font-weight: 700;
+  color: #93c5fd;
+}
+.wind-indicator__strength {
+  font-size: 0.70rem;
+  color: var(--muted);
+}
+
+/* ============================================================
+   EventBanner — bandeau bas centré
+   ============================================================ */
+.event-banner {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 640px;
+  min-width: 300px;
+  z-index: 100;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255,183,3,0.25);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  padding: 7px 16px 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.3s, background 0.3s;
+}
+/* Couleur selon gravité */
+.event-banner--negative {
+  border-color: rgba(239,68,68,0.55);
+  background: rgba(40, 8, 8, 0.88);
+}
+.event-banner--positive {
+  border-color: rgba(34,197,94,0.45);
+  background: rgba(8, 30, 14, 0.88);
+}
+
+.event-banner__active {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 260px;
+}
+.event-banner__emoji { font-size: 1.6rem; flex-shrink: 0; padding-top: 2px; }
+
+.event-banner__body  { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.event-banner__top   { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.event-banner__name  { font-size: 0.90rem; font-weight: 700; color: #e6f2ff; }
+
+.event-banner__timer {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent);
+  flex-shrink: 0;
+  padding: 1px 6px;
+  background: rgba(255,183,3,0.12);
+  border-radius: 5px;
+  border: 1px solid rgba(255,183,3,0.30);
+}
+.event-banner__timer--urgent {
+  color: #ef4444;
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.40);
+  animation: timerUrgent 0.8s ease infinite alternate;
+}
+@keyframes timerUrgent {
+  from { opacity: 1; }
+  to   { opacity: 0.55; }
+}
+
+/* Toast de fin d'événement */
+.event-banner__ended {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 8px;
+  animation: fadeSlideIn 0.4s ease;
+}
+.event-banner__ended--neg { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.35); color: #86efac; }
+.event-banner__ended--pos { background: rgba(255,183,3,0.10);  border: 1px solid rgba(255,183,3,0.25);  color: #fde68a; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.event-banner__desc   { font-size: 0.76rem; color: rgba(255,255,255,0.65); }
+.event-banner__lesson { font-size: 0.72rem; color: #4ade80; font-style: italic; }
+
+/* Barre de progression (se vide au fil du temps) */
+.event-banner__progress-track {
+  height: 3px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.event-banner__progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+.event-banner--negative .event-banner__progress-bar { background: #ef4444; }
+.event-banner--positive .event-banner__progress-bar { background: #22c55e; }
+.event-banner:not(.event-banner--negative):not(.event-banner--positive) .event-banner__progress-bar { background: var(--accent); }
+
+.event-banner__log {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.event-banner__log-label { opacity: 0.6; }
+.event-banner__log-item  {
+  background: rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   Bouton reset (coin bas droit)
+   ============================================================ */
+.app-footer__reset {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 110;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  color: rgba(255,255,255,0.7);
+}
+.app-footer__reset:hover {
+  border-color: var(--danger);
+  background: rgba(239,68,68,0.20);
+  color: #fff;
+}
+
+/* ============================================================
+   GameOver overlay
+   ============================================================ */
+.gameover-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.gameover-box {
+  background: #0d1f36;
+  color: #e6f2ff;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 40px 48px;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+}
+.gameover-emoji  { font-size: 4rem; margin-bottom: 12px; }
+.gameover-title  { margin: 0 0 12px; font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+.gameover-reason { margin: 0 0 12px; font-size: 0.90rem; color: rgba(255,255,255,0.75); line-height: 1.5; }
+.gameover-lesson {
+  margin: 0 0 20px;
+  font-size: 0.82rem;
+  color: #4ade80;
+  font-style: italic;
+  line-height: 1.5;
+  padding: 8px;
+  background: rgba(34,197,94,0.08);
+  border-radius: 6px;
+}
+.gameover-btn {
+  padding: 12px 32px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #07203a;
+}
+.gameover-btn:hover { filter: brightness(1.1); }
+
+/* ============================================================
+   DisasterPopup
+   ============================================================ */
+.disaster-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.68);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: overlayIn 0.2s ease;
+}
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+.disaster-box {
+  border-radius: 18px;
+  padding: 36px 40px 20px;
+  text-align: center;
+  max-width: 460px;
+  width: 92%;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.55);
+  animation: boxIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+}
+@keyframes boxIn {
+  from { transform: scale(0.6) translateY(40px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);    opacity: 1; }
+}
+.disaster-box--negative { background: linear-gradient(160deg,#1a0a0a,#2d1010); border: 2px solid #b91c1c; color: #fef2f2; }
+.disaster-box--positive { background: linear-gradient(160deg,#0a1a0a,#103010); border: 2px solid #16a34a; color: #f0fdf4; }
+
+.disaster-emoji {
+  font-size: 5rem; line-height: 1; margin-bottom: 12px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+  animation: pulse 0.8s ease infinite alternate;
+}
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+.disaster-title    { margin: 0 0 10px; font-size: 1.75rem; font-weight: 800; letter-spacing: 0.02em; }
+.disaster-box--negative .disaster-title { color: #fca5a5; }
+.disaster-box--positive .disaster-title { color: #86efac; }
+
+.disaster-desc     { margin: 0 0 16px; font-size: 0.95rem; line-height: 1.6; opacity: 0.9; }
+
+.disaster-lesson {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 0.85rem; line-height: 1.5; margin-bottom: 20px; text-align: left;
+}
+.disaster-box--negative .disaster-lesson { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+.disaster-box--positive .disaster-lesson { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.3);  color: #86efac; }
+.disaster-lesson__icon { font-size: 1.1rem; flex-shrink: 0; }
+
+.disaster-btn {
+  padding: 12px 36px; border: none; border-radius: 10px;
+  cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: 700;
+  transition: filter 0.15s, transform 0.1s; margin-bottom: 16px;
+}
+.disaster-box--negative .disaster-btn { background: #ef4444; color: #fff; }
+.disaster-box--positive .disaster-btn { background: #22c55e; color: #fff; }
+.disaster-btn:hover  { filter: brightness(1.12); transform: scale(1.03); }
+.disaster-btn:active { transform: scale(0.97); }
+
+.disaster-progress-track {
+  height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; overflow: hidden;
+}
+.disaster-progress-bar { height: 100%; border-radius: 3px; transition: width 0.05s linear; }
+.disaster-box--negative .disaster-progress-bar { background: #ef4444; }
+.disaster-box--positive .disaster-progress-bar { background: #22c55e; }
+
+/* ============================================================
+   DisasterTimer — widget de compte à rebours centré
+   ============================================================ */
+.disaster-timer {
+  position: fixed;
+  top: 10px;
+  right: 8px;
+  left: unset;
+  transform: none;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  width: 205px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+.disaster-timer--neg { border-color: rgba(239,68,68,0.45); background: rgba(30,6,6,0.88); }
+.disaster-timer--pos { border-color: rgba(34,197,94,0.40); background: rgba(6,26,14,0.88); }
+.disaster-timer--urgent { animation: timerUrgent 0.7s ease infinite alternate; }
+
+.disaster-timer__emoji { font-size: 1.25rem; flex-shrink: 0; }
+
+.disaster-timer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.disaster-timer__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.disaster-timer__name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #e6f2ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disaster-timer__count {
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.disaster-timer--neg .disaster-timer__count { color: #fca5a5; }
+.disaster-timer--pos .disaster-timer__count { color: #86efac; }
+.disaster-timer--urgent .disaster-timer__count { color: #ef4444; }
+
+.disaster-timer__track {
+  height: 3px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.disaster-timer__bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+.disaster-timer--neg .disaster-timer__bar { background: #ef4444; }
+.disaster-timer--pos .disaster-timer__bar { background: #22c55e; }
+
+/* ============================================================
+   Sprites CSS des bâtiments
+   ============================================================ */
+
+/* Base commune */
+.sprite {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ---- Éolienne ---- */
+.sprite-wind__mast {
+  position: absolute;
+  bottom: 5%;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 56%;
+  background: linear-gradient(to right, #aab0c0, #c8cdd8, #aab0c0);
+  border-radius: 2px;
+}
+.sprite-wind__base {
+  position: absolute;
+  bottom: 3%;
+  left: calc(50% - 8px);
+  width: 16px;
+  height: 5px;
+  background: #888a98;
+  border-radius: 2px;
+}
+.sprite-wind__rotor-wrap {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  transform: translateX(-50%);
+}
+.sprite-wind__rotor {
+  width: 100%;
+  height: 100%;
+  animation: turbineSpin var(--turbine-speed, 3s) linear infinite;
+  position: relative;
+}
+@keyframes turbineSpin { to { transform: rotate(360deg); } }
+
+.sprite-wind__blade {
+  position: absolute;
+  left: calc(50% - 3px);
+  bottom: 50%;
+  width: 6px;
+  height: 24px;
+  background: linear-gradient(to bottom, #e8eef8 0%, #b0bcd0 100%);
+  border-radius: 3px 3px 1px 1px;
+  transform-origin: center bottom;
+}
+.sprite-wind__blade--0 { transform: rotate(0deg); }
+.sprite-wind__blade--1 { transform: rotate(120deg); }
+.sprite-wind__blade--2 { transform: rotate(240deg); }
+
+.sprite-wind__hub {
+  position: absolute;
+  top: calc(10% + 24px);   /* same vertical as rotor center */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #4a5060;
+  border: 1.5px solid #8090a8;
+  z-index: 3;
+}
+
+/* ---- Panneau solaire ---- */
+.sprite-solar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.sprite-solar__frame {
+  width: 72%;
+  height: 52%;
+  background: #1a2535;
+  border: 2px solid #2a3548;
+  border-radius: 3px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 3px;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.sprite-solar__frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.sprite-solar__cell {
+  background: linear-gradient(135deg, #1a3a8c, #2d5be3);
+  border-radius: 1px;
+}
+.sprite-solar__leg {
+  position: absolute;
+  bottom: 14%;
+  width: 3px;
+  height: 16%;
+  background: #888;
+  border-radius: 1px;
+}
+.sprite-solar__leg--l { left: 22%; }
+.sprite-solar__leg--r { right: 22%; }
+
+/* ---- Centrale à charbon ---- */
+.sprite-coal-plant {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.sprite-coal-plant__chimney {
+  position: absolute;
+  bottom: 28%;
+  width: 10px;
+  background: linear-gradient(to right, #787878, #a0a0a0, #787878);
+  border-radius: 2px 2px 0 0;
+}
+.sprite-coal-plant__chimney--main  { left: 22%; height: 44%; }
+.sprite-coal-plant__chimney--small { left: 36%; height: 32%; width: 8px; }
+
+.sprite-coal-plant__smoke {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(210,210,220, var(--smoke-opacity, 0.5));
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.4);
+  animation: smokePuff 2.2s ease-out infinite;
+}
+.sprite-coal-plant__smoke.s1 { animation-delay: 0s; }
+.sprite-coal-plant__smoke.s2 { animation-delay: 0.75s; }
+.sprite-coal-plant__smoke.s3 { animation-delay: 1.5s; }
+
+@keyframes smokePuff {
+  0%   { transform: translateX(-50%) translateY(0)    scale(0.3); opacity: calc(var(--smoke-opacity, 0.5) * 1.2); }
+  100% { transform: translateX(-50%) translateY(-28px) scale(2.2); opacity: 0; }
+}
+
+.sprite-coal-plant__body {
+  position: absolute;
+  bottom: 8%;
+  left: 38%;
+  width: 50%;
+  height: 50%;
+  background: linear-gradient(160deg, #555570, #353548);
+  border-radius: 3px 3px 0 0;
+  border: 1px solid #252535;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  padding-top: 8px;
+}
+.sprite-coal-plant__window {
+  width: 10px;
+  height: 10px;
+  background: #fbbf24;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(251,191,36,0.8);
+}
+.sprite-coal-plant__annex {
+  position: absolute;
+  bottom: 8%;
+  right: 8%;
+  width: 14%;
+  height: 28%;
+  background: linear-gradient(160deg, #454558, #252535);
+  border-radius: 2px 2px 0 0;
+  border: 1px solid #252535;
+}
+
+/* ---- Mine de charbon ---- */
+.sprite-mine {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.sprite-mine__beam {
+  position: absolute;
+  bottom: 20%;
+  width: 5px;
+  height: 40%;
+  background: linear-gradient(to right, #7a5510, #a07030, #7a5510);
+  border-radius: 2px;
+}
+.sprite-mine__beam--l { left: 22%; }
+.sprite-mine__beam--r { right: 22%; }
+
+.sprite-mine__roof {
+  position: absolute;
+  bottom: 58%;
+  left: 15%;
+  width: 70%;
+  height: 22%;
+  background: #7a5010;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+.sprite-mine__entrance {
+  position: absolute;
+  bottom: 20%;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 34px;
+  background: #111118;
+  border-radius: 50% 50% 0 0 / 60% 60% 0 0;
+  border: 2px solid #554422;
+  border-bottom: none;
+}
+.sprite-mine__tracks {
+  position: absolute;
+  bottom: 8%;
+  left: 28%;
+  width: 44%;
+  height: 12%;
+  position: absolute;
+}
+.sprite-mine__rail {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  background: #888898;
+  border-radius: 1px;
+  width: 100%;
+}
+.sprite-mine__rail:nth-child(1) { top: 20%; }
+.sprite-mine__rail:nth-child(2) { top: 80%; }
+
+.sprite-mine__crosstie {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 3px;
+  background: #7a5510;
+  border-radius: 1px;
+  left: 10%;
+}
+.sprite-mine__crosstie--2 { left: 45%; }
+.sprite-mine__crosstie--3 { left: 80%; }
+
+/* ---- Géothermie ---- */
+.sprite-geo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fondations rocheuses */
+.sprite-geo__ground {
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  right: 8%;
+  height: 10%;
+  background: linear-gradient(180deg, #5a4830, #382a18);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Bâtiment industriel */
+.sprite-geo__building {
+  position: absolute;
+  bottom: 8%;
+  left: 26%;
+  width: 48%;
+  height: 38%;
+  background: linear-gradient(160deg, #3e5060, #253240);
+  border-radius: 3px 3px 0 0;
+  border: 1px solid #18222c;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  padding: 6px 4px 4px;
+}
+
+/* Fenêtres incandescentes */
+.sprite-geo__window {
+  width: 9px;
+  height: 9px;
+  background: #ff6600;
+  border-radius: 2px;
+  box-shadow: 0 0 7px rgba(255,100,0,0.95), 0 0 3px #ff4400;
+}
+
+/* Conduites de vapeur */
+.sprite-geo__pipe {
+  position: absolute;
+  background: linear-gradient(to right, #546070, #7a8898, #546070);
+  border-radius: 3px 3px 0 0;
+  border: 1px solid #384050;
+  overflow: visible;
+}
+.sprite-geo__pipe--l {
+  bottom: 8%;
+  left: 16%;
+  width: 8px;
+  height: 36%;
+}
+.sprite-geo__pipe--c {
+  bottom: 8%;
+  left: calc(50% - 5px);
+  width: 10px;
+  height: 55%;
+}
+.sprite-geo__pipe--r {
+  bottom: 8%;
+  right: 16%;
+  width: 7px;
+  height: 28%;
+}
+
+/* Vapeur animée */
+.sprite-geo__steam {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(210, 232, 255, 0.80);
+  left: 50%;
+  transform: translateX(-50%) scale(0.4);
+  bottom: 100%;
+  animation: geoSteam 2s ease-out infinite;
+  pointer-events: none;
+}
+.sprite-geo__steam--1 { animation-delay: 0s; }
+.sprite-geo__steam--2 { animation-delay: 0.7s; }
+.sprite-geo__steam--3 { animation-delay: 1.4s; }
+.sprite-geo__pipe--l .sprite-geo__steam { animation-duration: 1.8s; }
+.sprite-geo__pipe--r .sprite-geo__steam { animation-duration: 2.4s; }
+
+@keyframes geoSteam {
+  0%   { transform: translateX(-50%) translateY(0px)    scale(0.4); opacity: 0.90; }
+  55%  { opacity: 0.50; }
+  100% { transform: translateX(-50%) translateY(-28px)  scale(2.2); opacity: 0; }
+}
+
+/* Lueur géothermale orangée au sol */
+.sprite-geo__heat {
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 20%;
+  background: radial-gradient(ellipse at 50% 100%,
+    rgba(255,80,0,0.50) 0%,
+    rgba(255,80,0,0.18) 50%,
+    transparent 75%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   PauseWidget — bouton pause/play centré en bas
+   ============================================================ */
+.pause-widget {
+  position: fixed;
+  bottom: 56px;           /* au-dessus de l'EventBanner */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 115;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Bulle d'aide au premier lancement */
+.pause-widget__bubble {
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  padding: 7px 16px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  animation: bubblePop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+}
+/* Petite flèche en bas de la bulle */
+.pause-widget__bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid var(--accent);
+}
+
+@keyframes bubblePop {
+  from { opacity: 0; transform: scale(0.7) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);   }
+}
+
+/* Bouton ▶ DÉMARRER (état initial, bien visible) */
+.pause-widget__btn--play {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  background: var(--accent);
+  color: #07203a;
+  box-shadow: 0 4px 20px rgba(255,183,3,0.40);
+  transition: filter 0.15s, transform 0.1s;
+  letter-spacing: 0.03em;
+}
+.pause-widget__btn--play:hover  { filter: brightness(1.1); transform: scale(1.04); }
+.pause-widget__btn--play:active { transform: scale(0.97); }
+
+/* Bouton ⏸ (discret quand en jeu) */
+.pause-widget__btn--pause {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.7);
+  transition: border-color 0.15s, background 0.15s;
+}
+.pause-widget__btn--pause:hover {
+  border-color: var(--accent);
+  background: rgba(255,183,3,0.15);
+  color: #fff;
+}
+
+/* ============================================================
+   Sprite — Barrage hydraulique
+   ============================================================ */
+
+/* Conteneur principal */
+.sprite-barrage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+/* Eau amont — niveau haut, bleu sombre animé */
+.sprite-barrage__water-up {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 38%;
+  background:
+    repeating-linear-gradient(
+      -55deg,
+      transparent           0px, transparent           8px,
+      rgba(255,255,255,0.10) 8px, rgba(255,255,255,0.10) 9px
+    ),
+    linear-gradient(180deg, #1252a8 0%, #1a6cd0 100%);
+}
+/* Reflets ondulants */
+.sprite-barrage__water-up::after {
+  content: '';
+  position: absolute;
+  bottom: 3px; left: 8%;
+  width: 84%; height: 4px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 50%;
+  animation: barrageRipple 2.4s ease-in-out infinite;
+}
+@keyframes barrageRipple {
+  0%, 100% { transform: scaleX(1)   translateY(0);   opacity: 0.22; }
+  50%       { transform: scaleX(0.9) translateY(-2px); opacity: 0.38; }
+}
+
+/* Corps du barrage en béton */
+.sprite-barrage__body {
+  position: absolute;
+  top: 30%; left: 0;
+  width: 100%; height: 34%;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      #8c9898  0px,  #8c9898 11px,
+      #727e7e 11px, #727e7e 12px,   /* joint de bétonnage */
+      #8c9898 12px,  #8c9898 23px,
+      #727e7e 23px, #727e7e 24px
+    );
+  box-shadow:
+    inset 0  4px  6px rgba(255,255,255,0.18),   /* reflet bord sup */
+    inset 0 -4px  6px rgba(0,0,0,0.35),          /* ombre bord inf */
+    0 3px 8px rgba(0,0,0,0.50);
+}
+
+/* Passerelle supérieure (dessus du corps) */
+.sprite-barrage__catwalk {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 18%;
+  background:
+    linear-gradient(180deg, #b0baba 0%, #98a4a4 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+}
+/* Garde-corps */
+.sprite-barrage__catwalk::before,
+.sprite-barrage__catwalk::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #c8d4d4;
+}
+.sprite-barrage__catwalk::before { left:  10%; }
+.sprite-barrage__catwalk::after  { right: 10%; }
+
+/* Tour de contrôle */
+.sprite-barrage__tower {
+  position: absolute;
+  top: -52%; left: 50%;
+  transform: translateX(-50%);
+  width: 22%; height: 56%;
+  background: linear-gradient(180deg, #7a8888 0%, #5e6c6c 100%);
+  border-radius: 2px 2px 0 0;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.30);
+}
+/* Fenêtre lumineuse de la tour */
+.sprite-barrage__tower::before {
+  content: '';
+  position: absolute;
+  top: 20%; left: 50%;
+  transform: translateX(-50%);
+  width: 50%; height: 28%;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,240,120,0.85) 0%, rgba(200,180,60,0.45) 55%, transparent 100%);
+  border-radius: 2px;
+}
+/* Toit */
+.sprite-barrage__tower::after {
+  content: '';
+  position: absolute;
+  top: -12%; left: -12%;
+  width: 124%; height: 16%;
+  background: #5a6868;
+  border-radius: 2px 2px 0 0;
+}
+
+/* Bloc des vannes */
+.sprite-barrage__gates {
+  position: absolute;
+  bottom: 6%; left: 6%;
+  width: 88%; height: 72%;
+  display: flex;
+  gap: 6%;
+  align-items: flex-end;
+}
+
+/* Vanne individuelle (métal sombre) */
+.sprite-barrage__gate {
+  flex: 1;
+  height: 100%;
+  background:
+    linear-gradient(180deg, #3a4a5a 0%, #2a3848 60%, #1e2e3e 100%);
+  border-radius: 0 0 3px 3px;
+  box-shadow:
+    inset 2px  0 3px rgba(255,255,255,0.10),
+    inset 0   -2px 4px rgba(0,0,0,0.50),
+    0 2px 4px rgba(0,0,0,0.40);
+}
+/* Rivets des vannes */
+.sprite-barrage__gate::before {
+  content: '';
+  position: absolute;
+  top: 18%; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  box-shadow: 0 8px 0 rgba(255,255,255,0.18);
+}
+
+/* Eau aval — plus claire, niveau bas */
+.sprite-barrage__water-down {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 28%;
+  background:
+    repeating-linear-gradient(
+      -55deg,
+      transparent           0px, transparent           6px,
+      rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 7px
+    ),
+    linear-gradient(180deg, #2272e8 0%, #1a60c8 100%);
+}
+
+/* Écume au pied du barrage */
+.sprite-barrage__foam {
+  position: absolute;
+  bottom: 26%; left: 4%;
+  width: 92%; height: 10%;
+  background:
+    radial-gradient(ellipse 16% 55% at 15% 50%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 55% at 38% 50%, rgba(255,255,255,0.60) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 55% at 62% 50%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 55% at 85% 50%, rgba(255,255,255,0.55) 0%, transparent 100%);
+  animation: barrageFlash 1.8s ease-in-out infinite;
+}
+@keyframes barrageFlash {
+  0%, 100% { opacity: 0.70; }
+  50%       { opacity: 1.00; }
+}
+
+/* ============================================================
+   Thème jour — panneaux clairs (style HQ Mission 2035)
+   ============================================================ */
+
+/* Panneaux latéraux */
+.app--day .building-panel,
+.app--day .hud {
+  background: #eef5fd;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1.5px solid #90b8e8;
+  border-radius: 18px;
+  color: #0a0650;
+  box-shadow: 0 4px 24px rgba(15,9,108,0.14), 0 1px 4px rgba(15,9,108,0.08);
+  scrollbar-color: #90b8e8 transparent;
+}
+.app--day .building-panel::-webkit-scrollbar-thumb,
+.app--day .hud::-webkit-scrollbar-thumb { background: #90b8e8; }
+
+/* Titres */
+.app--day .building-panel__title,
+.app--day .hud__title { color: #0a0650; font-weight: 800; letter-spacing: 0.09em; }
+
+/* Hint construction */
+.app--day .building-panel__hint { color: #1c1470; }
+
+/* Boutons de construction */
+.app--day .build-btn {
+  background: white;
+  border: 1.5px solid #90b8e8;
+  color: #0a0650;
+  box-shadow: 0 1px 3px rgba(15,9,108,0.10);
+}
+.app--day .build-btn:hover         { background: #d8eaf8; border-color: #0f096c; }
+.app--day .build-btn--selected     { background: rgba(224,128,0,0.12); border-color: #c07000; box-shadow: 0 0 0 2px rgba(224,128,0,0.28); }
+.app--day .build-btn--poor:hover   { background: white; border-color: #90b8e8; box-shadow: 0 1px 3px rgba(15,9,108,0.10); }
+.app--day .build-btn--cancel       { background: rgba(192,24,26,0.10); border-color: #b01416; color: #b01416; }
+.app--day .build-btn__label        { color: #0a0650; font-weight: 700; }
+.app--day .build-btn__desc         { color: #1c1470; }
+.app--day .build-btn__cost         { color: #9e5500; font-weight: 800; }
+
+/* Erreur placement */
+.app--day .placement-error { background: rgba(176,20,22,0.10); color: #b01416; border-left-color: #b01416; }
+
+/* Vente énergie */
+.app--day .building-panel__sell { border-top-color: #90b8e8; }
+.app--day .sell-btn {
+  background: #d07000;
+  border: none;
+  border-radius: 9999px;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(180,90,0,0.35);
+}
+.app--day .sell-btn:hover:not(:disabled) { background: #b86000; box-shadow: 0 4px 12px rgba(180,90,0,0.45); }
+.app--day .sell-btn__amount { color: rgba(255,255,255,0.94); }
+
+/* Sell panel */
+.app--day .sell-panel { background: rgba(208,112,0,0.08); border-color: #d07000; border-radius: 12px; }
+.app--day .sell-panel__title  { color: #0a0650; font-weight: 700; }
+.app--day .sell-panel__info   { color: #1c1470; }
+.app--day .sell-panel__refund { color: #0a6030; font-weight: 700; }
+.app--day .sell-panel__btn--confirm { background: #d07000; color: white; }
+.app--day .sell-panel__btn--cancel  { border-color: #90b8e8; color: #0a0650; }
+
+/* Aide */
+.app--day .help-toggle { border-color: #90b8e8; color: #1c1470; }
+.app--day .help-toggle:hover { color: #0a0650; border-color: #0f096c; }
+.app--day .help-panel { background: #d8eaf8; border-color: #90b8e8; }
+.app--day .help-panel__tip { color: #14104a; }
+
+/* HUD temps */
+.app--day .hud__time {
+  background: #d8eaf8;
+  color: #0a0650;
+  border: 1px solid #90b8e8;
+  font-weight: 700;
+}
+
+/* HUD sections + stats */
+.app--day .hud__section     { border-top-color: #90b8e8; }
+.app--day .hud__stat        { color: #1c1470; }
+.app--day .hud__stat strong { color: #0a0650; font-weight: 700; }
+.app--day .hud__stat--small { color: #1c1470; }
+
+/* Barres de progression */
+.app--day .hud__progress             { background: rgba(15,9,108,0.16); height: 6px; border-radius: 4px; }
+.app--day .hud__progress-bar         { border-radius: 4px; }
+.app--day .hud__progress-bar--blue   { background: #0f096c !important; }
+.app--day .hud__progress-bar--orange { background: #d07000 !important; }
+
+/* Effets événements */
+.app--day .hud__event-effects--neg { background: rgba(176,20,22,0.10); border-color: rgba(176,20,22,0.45); }
+.app--day .hud__event-effects--pos { background: rgba(10,96,48,0.10);  border-color: rgba(10,96,48,0.40); }
+.app--day .hud__event-effects__title                          { color: #0a0650; }
+.app--day .hud__event-effects--neg .hud__event-effects__title { color: #860c0d; }
+.app--day .hud__event-effects--pos .hud__event-effects__title { color: #0a4820; }
+.app--day .hud__event-effects__line { color: #1c1470; }
+
+/* Hints + détail */
+.app--day .hud__health-hint     { color: #1c1470; font-style: italic; }
+.app--day .hud__hint--warn      { color: #8a4400; }
+.app--day .hud__hint--tip       { color: #0f096c; font-weight: 600; }
+.app--day .hud__detail-row      { color: #1c1470; }
+.app--day .hud__detail-row--geo { color: #8a4400; }
+.app--day .hud__obj-item        { color: #1c1470; }
+
+/* Compas vent */
+.app--day .wind-indicator__compass         { background: #d8eaf8; border-color: #90b8e8; }
+.app--day .wind-indicator__compass::before { color: rgba(10,6,80,0.55); }
+.app--day .wind-indicator__arrow           { background: linear-gradient(to top, transparent 20%, #0f096c 100%); }
+.app--day .wind-indicator__dir             { color: #0f096c; font-weight: 800; }
+.app--day .wind-indicator__strength        { color: #1c1470; }
+
+/* Header */
+.app--day .app-header {
+  background: #eef5fd;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: #90b8e8;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 4px 20px rgba(15,9,108,0.12);
+}
+.app--day .app-header__title      { color: #0a0650; font-weight: 800; }
+.app--day .app-header__day        { background: #d8eaf8; color: #0a0650; border-color: #90b8e8; border-radius: 9999px; font-weight: 700; }
+.app--day .app-header__subtitle   { color: #1c1470; }
+
+/* Bouton reset */
+.app--day .app-footer__reset {
+  background: #eef5fd;
+  backdrop-filter: none;
+  border-color: #90b8e8;
+  color: #1c1470;
+  box-shadow: 0 2px 8px rgba(15,9,108,0.10);
+}
+.app--day .app-footer__reset:hover { border-color: #b01416; background: rgba(176,20,22,0.10); color: #b01416; }
+
+/* ============================================================
+   Nuages de pollution
+   ============================================================ */
+.pollution-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.pollution-cloud {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(14px);
+  animation: cloudDrift linear infinite;
+  will-change: transform;
+}
+
+@keyframes cloudDrift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(100vw + 320px)); }
+}
+
+/* ============================================================
+   Responsive (fallback mobile basique)
+   ============================================================ */
+@media (max-width: 700px) {
+  .building-panel, .hud { display: none; }
+  .app-header { width: 90%; }
+}

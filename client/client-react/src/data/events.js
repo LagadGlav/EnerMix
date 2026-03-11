@@ -1,0 +1,90 @@
+// Durée en jours de jeu (1 jour = 20 ticks = 20 secondes)
+export const TICKS_PER_DAY = 20
+
+export const EVENTS = [
+  {
+    id: 'canicule',
+    name: 'Canicule',
+    emoji: '🌡️',
+    description: 'Vague de chaleur ! La production solaire est boostée de 50%.',
+    durationDays: 2,
+    effectKey: 'canicule',
+    isNegative: false,
+    lesson: 'Le solaire adore la chaleur ! Mais la demande monte aussi avec la clim.',
+  },
+  {
+    id: 'tempete',
+    name: 'Tempête',
+    emoji: '⛈️',
+    description: 'Tempête violente ! Les éoliennes sont à l\'arrêt pour sécurité.',
+    durationDays: 3,
+    effectKey: 'tempete',
+    isNegative: true,
+    lesson: 'Les éoliennes s\'arrêtent par vents extrêmes. Sans diversité, pas d\'énergie !',
+  },
+  {
+    id: 'greve',
+    name: 'Grève des mineurs',
+    emoji: '✊',
+    description: 'Grève générale dans les mines ! Les mines de charbon sont à l\'arrêt pendant 4 jours.',
+    durationDays: 6,
+    effectKey: 'greve',
+    isNegative: true,
+    lesson: 'Dépendre du charbon, c\'est dépendre des mineurs. Une grève peut tout bloquer !',
+  },
+  {
+    id: 'subvention',
+    name: 'Subvention verte',
+    emoji: '💚',
+    description: 'L\'État subventionne la transition ! Constructions renouvelables -50% pendant 2 jours.',
+    durationDays: 1,
+    effectKey: 'subvention',
+    isNegative: false,
+    lesson: 'Les politiques publiques peuvent vraiment accélérer la transition énergétique !',
+  },
+  {
+    id: 'demandePlus',
+    name: 'Vague de froid',
+    emoji: '❄️',
+    description: 'Tout le monde allume le chauffage ! La demande électrique explose.',
+    durationDays: 5,
+    effectKey: 'demandePlus',
+    isNegative: true,
+    lesson: 'Le changement climatique créé des pics de consommation de plus en plus forts.',
+  },
+  {
+    id: 'accident',
+    name: 'Accident industriel',
+    emoji: '💥',
+    description: 'EXPLOSION dans une centrale ! Les centrales à charbon sont hors-ligne, la pollution est doublée et les habitants sont choqués.',
+    durationDays: 2,
+    effectKey: 'accident',
+    isNegative: true,
+    instantEffect: { health: -10 },
+    lesson: 'Les accidents industriels frappent fort et vite : production à l\'arrêt, santé dégradée. Diversifie ton mix !',
+  },
+  {
+    id: 'journeeSoleil',
+    name: 'Journée ensoleillée',
+    emoji: '🌞',
+    description: 'Magnifique journée ! La production solaire est doublée pendant toute la journée.',
+    durationDays: 3,
+    effectKey: 'journeeSoleil',
+    isNegative: false,
+    lesson: 'Le solaire est variable : il faut en profiter quand ça brille !',
+  },
+  {
+    id: 'penurie',
+    name: 'Pénurie de charbon',
+    emoji: '📦',
+    description: 'Rupture de stock mondiale ! Les centrales tournent à moitié pendant 3 jours.',
+    durationDays: 5,
+    effectKey: 'penurie',
+    isNegative: true,
+    lesson: 'Les ressources fossiles sont épuisables et le marché est instable. Diversifie !',
+  },
+]
+
+// Intervalles (en ticks/secondes) entre deux événements
+export const EVENT_INTERVAL_MIN = 40
+export const EVENT_INTERVAL_MAX = 100
