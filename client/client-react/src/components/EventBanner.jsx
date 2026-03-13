@@ -10,7 +10,7 @@ export default function EventBanner({ activeEvent, eventLog, endedEvent }) {
   const isUrgent  = daysLeft <= 1
 
   return (
-    <div className={`event-banner ${activeEvent ? (isNeg ? 'event-banner--negative' : 'event-banner--positive') : ''}`}>
+    <div id="event-banner" className={`event-banner ${activeEvent ? (isNeg ? 'event-banner--negative' : 'event-banner--positive') : ''}`}>
 
       {/* Toast de fin d'événement */}
       {endedEvent && !activeEvent && (

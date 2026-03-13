@@ -1902,3 +1902,481 @@ body, html, #root {
   .building-panel, .hud { display: none; }
   .app-header { width: 90%; }
 }
+
+/* ============================================================
+   Écran de sélection de niveau
+   ============================================================ */
+.level-select-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: linear-gradient(135deg, #060920 0%, #0f096c 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  color: white;
+  padding: 20px;
+}
+
+.level-select__header { text-align: center; }
+
+.level-select__title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.level-select__subtitle {
+  font-size: 1rem;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.level-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.level-card {
+  width: 210px;
+  padding: 24px 20px;
+  border-radius: 18px;
+  border: 2px solid rgba(255,255,255,0.10);
+  cursor: pointer;
+  position: relative;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(8px);
+  transition: transform 0.15s, border-color 0.2s, background 0.2s;
+  text-align: left;
+  color: white;
+}
+
+.level-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--level-color, var(--accent));
+  background: rgba(255,255,255,0.12);
+}
+
+.level-done {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  color: #22c55e;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.level-card__emoji {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.level-card__label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--level-color, white);
+}
+
+.level-card__desc {
+  display: block;
+  font-size: 0.82rem;
+  opacity: 0.8;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.level-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Overlay tutoriel
+   ============================================================ */
+.tutorial-overlay {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 250;
+  background: rgba(5, 14, 32, 0.97);
+  border: 1.5px solid rgba(255,183,3,0.35);
+  border-radius: 16px;
+  padding: 20px 28px;
+  min-width: 380px;
+  max-width: 520px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  color: white;
+}
+
+.tutorial-overlay__step {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  opacity: 0.8;
+}
+
+.tutorial-overlay__title {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.tutorial-overlay__text {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.88);
+  margin-bottom: 4px;
+}
+
+.tutorial-overlay__waiting {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.tutorial-overlay__btn {
+  margin-top: 16px;
+  padding: 9px 24px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.tutorial-overlay__btn:hover { opacity: 0.85; }
+
+/* ── Variantes de position de l'overlay tutoriel ── */
+.tutorial-overlay--center {
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: auto;
+  right: auto;
+}
+
+.tutorial-overlay--hud {
+  top: 50%;
+  right: 336px;
+  transform: translateY(-50%);
+  left: auto;
+  bottom: auto;
+}
+
+.tutorial-overlay--panel {
+  top: 50%;
+  left: 336px;
+  transform: translateY(-50%);
+  right: auto;
+  bottom: auto;
+}
+
+.tutorial-overlay--top {
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: auto;
+  right: auto;
+}
+
+/* ── Flèches "bulle de dialogue" (panel / hud / top) ── */
+/* Panel : flèche pointant à gauche vers le panneau de construction */
+.tutorial-overlay--panel::before,
+.component-bubble--panel::before {
+  content: '';
+  position: absolute;
+  left: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 13px solid transparent;
+  border-right-color: rgba(5, 14, 32, 0.97);
+  border-left-width: 0;
+}
+
+/* HUD : flèche pointant à droite vers le tableau de bord */
+.tutorial-overlay--hud::before,
+.component-bubble--hud::before {
+  content: '';
+  position: absolute;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 13px solid transparent;
+  border-left-color: rgba(5, 14, 32, 0.97);
+  border-right-width: 0;
+}
+
+/* Top : flèche pointant vers le haut vers le bouton pause/play */
+.tutorial-overlay--top::before,
+.component-bubble--top::before {
+  content: '';
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 13px solid transparent;
+  border-bottom-color: rgba(5, 14, 32, 0.97);
+  border-top-width: 0;
+}
+
+/* ── Surbrillance tutoriel (pulsante) ── */
+.tutorial-highlight {
+  outline: 2.5px solid rgba(255, 183, 3, 0.9) !important;
+  box-shadow:
+    0 0 0 4px rgba(255,183,3,0.22),
+    0 0 18px rgba(255,183,3,0.30) !important;
+  border-radius: 10px !important;
+  z-index: 101;
+  animation: tutPulse 1.8s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes tutPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(255,183,3,0.18),
+      0 0 12px rgba(255,183,3,0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px rgba(255,183,3,0.35),
+      0 0 26px rgba(255,183,3,0.42);
+  }
+}
+
+/* ============================================================
+   EasyIndicators — toasts non-bloquants
+   ============================================================ */
+.easy-indicators {
+  position: fixed;
+  bottom: 90px;
+  left: 220px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.easy-hint {
+  background: rgba(5, 14, 32, 0.95);
+  border-radius: 12px;
+  padding: 12px 36px 12px 16px;
+  font-size: 0.84rem;
+  color: white;
+  max-width: 300px;
+  border-left: 3px solid var(--danger);
+  animation: hintSlide 0.3s ease;
+  position: relative;
+  pointer-events: all;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+  line-height: 1.45;
+}
+
+.easy-hint__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+}
+.easy-hint__close:hover { color: white; }
+
+@keyframes hintSlide {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   BuildingHintPopup — aide premier bâtiment Easy/Medium
+   ============================================================ */
+.building-hint-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.60);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 280;
+  animation: overlayIn 0.2s ease;
+}
+
+.building-hint-box {
+  background: linear-gradient(160deg, #0a1a2e, #0e2540);
+  border: 1.5px solid rgba(255,183,3,0.35);
+  border-radius: 18px;
+  padding: 32px 40px 24px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: boxIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.building-hint__emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.building-hint__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.building-hint__desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 20px;
+}
+
+.building-hint__btn {
+  padding: 10px 28px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.building-hint__btn:hover { opacity: 0.85; }
+
+/* ============================================================
+   Bouton "Passer les aides" (Easy + Medium)
+   ============================================================ */
+.skip-hints-btn {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  background: rgba(5,14,32,0.82);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 9999px;
+  color: rgba(255,255,255,0.55);
+  font-size: 0.78rem;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  backdrop-filter: blur(6px);
+}
+.skip-hints-btn:hover {
+  color: rgba(255,255,255,0.88);
+  border-color: rgba(255,255,255,0.35);
+}
+
+/* ============================================================
+   ComponentBubble — bulle explicative Easy/Medium (intro + rappels)
+   ============================================================ */
+.component-bubble {
+  position: fixed;
+  z-index: 220;
+  background: rgba(5, 14, 32, 0.97);
+  border: 1.5px solid rgba(255, 183, 3, 0.35);
+  border-radius: 14px;
+  padding: 20px 22px 18px;
+  max-width: 300px;
+  color: white;
+  box-shadow: 0 8px 36px rgba(0,0,0,0.55);
+  animation: bubbleIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Positions ComponentBubble — miroir des positions TutorialOverlay */
+.component-bubble--panel {
+  top: 50%;
+  left: 336px;
+  transform: translateY(-50%);
+}
+
+.component-bubble--hud {
+  top: 50%;
+  right: 336px;
+  transform: translateY(-50%);
+  left: auto;
+}
+
+.component-bubble--top {
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.component-bubble--center {
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.component-bubble__step {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 183, 3, 0.75);
+  margin-bottom: 7px;
+}
+
+.component-bubble__title {
+  font-size: 0.97rem;
+  font-weight: 800;
+  margin-bottom: 9px;
+  color: #fff;
+}
+
+.component-bubble__text {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.87);
+  margin-bottom: 16px;
+}
+
+.component-bubble__btn {
+  display: block;
+  width: 100%;
+  padding: 9px 20px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.component-bubble__btn:hover { opacity: 0.85; }

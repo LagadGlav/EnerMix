@@ -9,6 +9,7 @@ export default function PauseWidget({ isPaused, onToggle, hasEverStarted }) {
       )}
 
       <button
+        id="pause-widget"
         className={`pause-widget__btn ${isPaused ? 'pause-widget__btn--play' : 'pause-widget__btn--pause'}`}
         onClick={onToggle}
         title={isPaused ? 'Démarrer la partie' : 'Mettre en pause'}

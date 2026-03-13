@@ -98,13 +98,15 @@ export const BUILDINGS = {
 }
 
 // ── Formule de demande — SOURCE UNIQUE DE VÉRITÉ ───────────
-// Modifie uniquement ici pour rééquilibrer la difficulté.
-export function computeDemand(population) {
-  const rate = population < 150 ? 0.05
-             : population < 200 ? 0.08
-             : population < 250 ? 0.11
-             : population < 350 ? 0.15
-             :                    0.10
+// Taux par défaut (medium / hard). Tuto et easy utilisent des taux plus doux via LEVEL_CONFIGS.
+export const DEFAULT_DEMAND_RATES = [0.05, 0.08, 0.11, 0.15, 0.10]
+
+export function computeDemand(population, rates = DEFAULT_DEMAND_RATES) {
+  const rate = population < 150 ? rates[0]
+             : population < 200 ? rates[1]
+             : population < 250 ? rates[2]
+             : population < 350 ? rates[3]
+             :                    rates[4]
   return population * rate
 }
 

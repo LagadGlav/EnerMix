@@ -20,8 +20,13 @@ export default function BuildingPanel({
   sellTarget,
   onConfirmSell,
   onCancelSell,
+  availableBuildings = 'all',
 }) {
   const [showHelp, setShowHelp] = useState(false)
+
+  const buildingList = availableBuildings === 'all'
+    ? Object.values(BUILDINGS)
+    : Object.values(BUILDINGS).filter(b => availableBuildings.includes(b.id))
 
   const getEffectiveCost = (building) => {
     if (activeEvent?.effectKey === 'subvention' && building.isRenewable) {
@@ -31,7 +36,7 @@ export default function BuildingPanel({
   }
 
   return (
-    <div className="building-panel">
+    <div className="building-panel" id="building-panel">
       <h2 className="building-panel__title">Construire</h2>
       <p className="building-panel__hint">
         Sélectionnez un bâtiment puis cliquez sur une tuile compatible.
@@ -39,7 +44,7 @@ export default function BuildingPanel({
       </p>
 
       <div className="building-panel__buttons">
-        {Object.values(BUILDINGS).map((b) => {
+        {buildingList.map((b) => {
           const cost       = getEffectiveCost(b)
           const canAfford  = money >= cost
           const isSelected = selectedBuilding === b.id
@@ -106,6 +111,7 @@ export default function BuildingPanel({
       {/* Vente d'énergie stockée */}
       <div className="building-panel__sell">
         <button
+          id="sell-btn"
           className="sell-btn"
           onClick={onSellEnergy}
           disabled={energy <= 0}

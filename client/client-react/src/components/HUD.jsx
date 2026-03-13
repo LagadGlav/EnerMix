@@ -59,7 +59,7 @@ export default function HUD({
   const eventEffects = activeEvent ? getEventEffects(activeEvent.effectKey) : []
 
   return (
-    <aside className="hud">
+    <aside className="hud" id="hud-panel">
       <h2 className="hud__title">Tableau de bord</h2>
 
       {/* Jour / nuit */}
@@ -76,12 +76,12 @@ export default function HUD({
       )}
 
       {/* Argent & énergie stockée */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-money">
         <div className="hud__stat">
           <span>💰 Argent</span>
           <strong>{money.toFixed(1)} €</strong>
         </div>
-        <div className="hud__stat">
+        <div className="hud__stat" id="hud-storage">
           <span>🔋 Stocké</span>
           <strong>{energy.toFixed(1)} / {maxEnergy} kWh</strong>
         </div>
@@ -95,7 +95,7 @@ export default function HUD({
       </div>
 
       {/* Énergie */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-energy">
         <div className="hud__stat">
           <span>⚡ Production</span>
           <strong>{totalProduction.toFixed(1)} kWh/s</strong>
@@ -160,7 +160,7 @@ export default function HUD({
       )}
 
       {/* Vent */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-wind">
         <div className="hud__stat" style={{ opacity: 0.55, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <span>Vent</span>
         </div>
@@ -168,7 +168,7 @@ export default function HUD({
       </div>
 
       {/* Pollution */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-pollution">
         <div className="hud__stat" style={{ color: pollColor }}>
           <span>☁️ Pollution</span>
           <strong>{pollution.toFixed(0)} / 100</strong>
@@ -182,7 +182,7 @@ export default function HUD({
       </div>
 
       {/* Santé */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-health">
         <div className="hud__stat" style={{ color: healthColor }}>
           <span>❤️ Santé</span>
           <strong>{health.toFixed(0)} / 100</strong>
@@ -199,7 +199,7 @@ export default function HUD({
       </div>
 
       {/* Satisfaction (2e condition de défaite) */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-satisfaction">
         <div className="hud__stat" style={{ color: satColor }}>
           <span>😤 Satisfaction</span>
           <strong>{satisfaction.toFixed(0)} / 100</strong>
@@ -213,7 +213,7 @@ export default function HUD({
       </div>
 
       {/* Population & objectifs */}
-      <div className="hud__section">
+      <div className="hud__section" id="hud-population">
         <div className="hud__stat">
           <span>👥 Population</span>
           <strong>{population}</strong>

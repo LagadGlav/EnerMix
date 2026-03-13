@@ -1,32 +1,116 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import './App.css'
-import GameMap       from './components/GameMap.jsx'
-import HUD           from './components/HUD.jsx'
-import BuildingPanel from './components/BuildingPanel.jsx'
-import EventBanner   from './components/EventBanner.jsx'
-import GameOver      from './components/GameOver.jsx'
-import DisasterPopup from './components/DisasterPopup.jsx'
-import DisasterTimer from './components/DisasterTimer.jsx'
-import PauseWidget      from './components/PauseWidget.jsx'
-import PollutionClouds  from './components/PollutionClouds.jsx'
+import GameMap        from './components/GameMap.jsx'
+import HUD            from './components/HUD.jsx'
+import BuildingPanel  from './components/BuildingPanel.jsx'
+import EventBanner    from './components/EventBanner.jsx'
+import GameOver       from './components/GameOver.jsx'
+import DisasterPopup  from './components/DisasterPopup.jsx'
+import DisasterTimer  from './components/DisasterTimer.jsx'
+import PauseWidget    from './components/PauseWidget.jsx'
+import PollutionClouds from './components/PollutionClouds.jsx'
+import LevelSelect    from './components/LevelSelect.jsx'
+import TutorialOverlay, { FREE_PLAY_STEP } from './components/TutorialOverlay.jsx'
+import EasyIndicators  from './components/EasyIndicators.jsx'
+import ComponentBubble from './components/ComponentBubble.jsx'
 import { BUILDINGS, TILE_TYPES, computeDemand, BASE_STORAGE } from './data/buildings.js'
 import { EVENTS, EVENT_INTERVAL_MIN, EVENT_INTERVAL_MAX, TICKS_PER_DAY } from './data/events.js'
 import { INITIAL_GRID, GRID_COLS, GRID_ROWS, CITY_CENTER_COL, CITY_CENTER_ROW } from './data/initialMap.js'
 
 const SELL_RATE      = 0.35  // € par kWh stocké
-// Demande par paliers → voir computeDemand() dans data/buildings.js (source unique)
 const TAX_PER_POP   = 0.05  // € par habitant par 10s
-const INITIAL_MONEY = 120    // budget de départ plus serré
+const INITIAL_MONEY = 120    // budget de départ
 const TILE_SIZE     = 80    // px
 
 // Taille réelle de la grille (tuiles + gaps)
 const MAP_W = GRID_COLS * TILE_SIZE + (GRID_COLS - 1) // 2024
 const MAP_H = GRID_ROWS * TILE_SIZE + (GRID_ROWS - 1) // 1619
 
-function makeInitialGrid() { return INITIAL_GRID.map(t => ({ ...t })) }
-function makeInitialEventTimer() {
-  return EVENT_INTERVAL_MIN + Math.floor(Math.random() * (EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN))
+// ── Configurations par niveau ──────────────────────────────
+const LEVEL_CONFIGS = {
+  tutorial: {
+    id: 'tutorial',
+    availableBuildings: ['wind', 'barrage'],
+    availableEventIds: ['subvention', 'demandePlus'],
+    demandMultiplier: 0.55,
+    demandRates: [0.035, 0.05, 0.07, 0.09, 0.08],  // courbe plus douce
+    eventIntervalMin: 80, eventIntervalMax: 150,
+    winCondition: { population: 150, health: 50, renewableShare: 30 },
+    initialMoney: 200,
+    simTickMs: 3000,   // 1 tick de jeu toutes les 3s (plus lent pour les élèves)
+    ticksPerDay: 7,    // 7 × 3s ≈ 21s par jour (même durée réelle qu'en medium)
+  },
+  easy: {
+    id: 'easy',
+    availableBuildings: ['wind', 'barrage', 'coalMine', 'coalPlant'],
+    availableEventIds: 'all',
+    demandMultiplier: 0.75,
+    demandRates: [0.042, 0.065, 0.09, 0.12, 0.09],  // courbe légèrement plus douce
+    eventIntervalMin: 60, eventIntervalMax: 120,
+    winCondition: { population: 200, health: 50, renewableShare: 30 },
+    initialMoney: 150,
+    simTickMs: 2000,   // 1 tick de jeu toutes les 2s
+    ticksPerDay: 10,   // 10 × 2s = 20s par jour
+  },
+  medium: {
+    id: 'medium',
+    availableBuildings: 'all', availableEventIds: 'all',
+    demandMultiplier: 0.85,
+    eventIntervalMin: 40, eventIntervalMax: 100,
+    winCondition: { population: 275, health: 60, renewableShare: 50 },
+    initialMoney: 120,
+    simTickMs: 1000,
+    ticksPerDay: 20,
+  },
+  hard: {
+    id: 'hard',
+    availableBuildings: 'all', availableEventIds: 'all',
+    demandMultiplier: 1.0,
+    eventIntervalMin: 40, eventIntervalMax: 100,
+    winCondition: { population: 500, health: 60, renewableShare: 50 },
+    initialMoney: 120,
+    simTickMs: 1000,
+    ticksPerDay: 20,
+  },
 }
+
+function makeInitialGrid() { return INITIAL_GRID.map(t => ({ ...t })) }
+// Grille sans bâtiments pré-placés (pour le tutoriel)
+function makeCleanGrid() { return INITIAL_GRID.map(t => ({ ...t, building: null })) }
+function makeInitialEventTimer(min = EVENT_INTERVAL_MIN, max = EVENT_INTERVAL_MAX) {
+  return min + Math.floor(Math.random() * (max - min))
+}
+
+// ── Bulles intro Easy / Medium ───────────────────────────────────
+const INTRO_BUBBLES_EASY = [
+  {
+    pos: 'panel', highlight: 'building-panel',
+    title: '🏗️ Comment construire',
+    text: "Clique sur un bâtiment dans ce panneau pour le sélectionner, puis clique sur une tuile compatible de la carte.\nÉoliennes 🌀 → terrain vert · Barrages 🏞️ → rivière bleue.",
+    btnLabel: 'OK !',
+  },
+  {
+    pos: 'center', highlight: 'hud-panel',
+    title: '📊 Tableau de bord',
+    text: "Surveille ta production ⚡ vs ta demande, ton argent 💰, le stockage 🔋, la satisfaction 😊 et la santé ❤️ de tes habitants. Si la satisfaction tombe à 0 → Game Over !",
+    btnLabel: 'Compris !',
+  },
+  {
+    pos: 'top', highlight: 'pause-widget',
+    title: '▶ Lance la simulation',
+    text: "Clique sur ce bouton pour démarrer. Le jeu se mettra automatiquement en pause lors d'alertes importantes — lis-les bien avant de reprendre.",
+    btnLabel: "C'est parti !",
+  },
+]
+
+const INTRO_BUBBLES_MEDIUM = [
+  {
+    pos: 'center', highlight: 'hud-panel',
+    title: '📊 Difficulté Moyen',
+    text: "Les événements sont plus fréquents et la demande plus élevée. Construis un mix énergétique varié et du stockage 🔋 AVANT que les catastrophes arrivent.",
+    btnLabel: 'Compris !',
+  },
+]
 
 export default function App() {
   // ── Ressources ─────────────────────────────────────────────
@@ -63,6 +147,35 @@ export default function App() {
   // ── Pause ──────────────────────────────────────────────────
   const [isPaused,       setIsPaused]       = useState(true)   // démarre pausé
   const [hasEverStarted, setHasEverStarted] = useState(false)
+
+  // ── Sélection de niveau ────────────────────────────────────
+  const [level,          setLevel]          = useState(null)   // null = menu
+  const [tutorialStep,   setTutorialStep]   = useState(null)
+  const [demandMultiplier, setDemandMultiplier] = useState(1.0)
+  const levelConfigRef       = useRef(null)
+  const demandMultiplierRef  = useRef(1.0)
+
+  // ── Easy/Medium : aides contextuelles ─────────────────────
+  const [seenBuildings,    setSeenBuildings]    = useState(() => new Set())
+  const [newBuildingHint,  setNewBuildingHint]  = useState(null)  // building id
+  const [skipHints,        setSkipHints]        = useState(false)
+  const [introBubbleIdx,   setIntroBubbleIdx]   = useState(null)  // null = pas d'intro
+
+  // ── Tutoriel : ref miroir + flags anti-double-déclenchement
+  const tutorialStepRef        = useRef(null)
+  const tutDeficitShownRef     = useRef(false)
+  const tutDeficit2ShownRef    = useRef(false)
+  const tutStorageUsedShownRef = useRef(false)
+  const tutPop150ShownRef      = useRef(false)
+  const tutSatShownRef         = useRef(false)
+  const tutEventShownRef       = useRef(false)
+  const tutEnergySaleShownRef  = useRef(false)
+  const tutNightShownRef       = useRef(false)
+
+  // ── Vitesse de simulation par niveau ───────────────────────
+  const simTickMsRef    = useRef(1000)   // intervalle entre deux ticks de jeu (ms)
+  const ticksPerDayRef  = useRef(20)     // ticks par cycle jour/nuit
+  const lastTickTimeRef = useRef(0)      // timestamp du dernier tick traité
 
   // ── Refs pour éviter stale closures dans la boucle ─────────
   const gridRef         = useRef(grid)
@@ -102,6 +215,9 @@ export default function App() {
   useEffect(() => { windAngleRef.current    = windAngle   }, [windAngle])
   useEffect(() => { isPausedRef.current     = isPaused    }, [isPaused])
   useEffect(() => { energyRef.current       = energy      }, [energy])
+
+  // ── Sync tutorialStepRef ────────────────────────────────────
+  useEffect(() => { tutorialStepRef.current = tutorialStep }, [tutorialStep])
 
   // ── CSS variables pour sprites ─────────────────────────────
   // Vitesse rotation éolienne selon force du vent
@@ -190,8 +306,8 @@ export default function App() {
 
   const energyDemand = useMemo(() => {
     const mDemand = activeEvent?.effectKey === 'demandePlus' ? 1.5 : 1
-    return computeDemand(population) * mDemand
-  }, [population, activeEvent])
+    return computeDemand(population) * mDemand * demandMultiplier
+  }, [population, activeEvent, demandMultiplier])
 
   const maxEnergy = useMemo(() =>
     BASE_STORAGE + buildingCounts.barrage * BUILDINGS.barrage.storagePerUnit
@@ -234,9 +350,14 @@ export default function App() {
   }, [buildingCounts, isDay, activeEvent, windStrength])
 
   // Ratio de déficit affiché (0-1) — détermine quelles tuiles city passent en rouge
-  const deficitRatio = useMemo(() =>
-    energyDemand > 0 ? Math.max(0, 1 - totalProduction / energyDemand) : 0
-  , [totalProduction, energyDemand])
+  // Déclenché uniquement quand les réserves sont épuisées
+  const deficitRatio = useMemo(() => {
+    if (energyDemand <= 0) return 0
+    const surplus = totalProduction - energyDemand
+    if (surplus >= 0) return 0
+    if (energy > 0)   return 0   // réserve dispo → pas de stress
+    return Math.min(1, -surplus / energyDemand)
+  }, [totalProduction, energyDemand, energy])
 
   // ── Croissance de la ville ─────────────────────────────────
   const growCity = useCallback(() => {
@@ -273,6 +394,11 @@ export default function App() {
       if (gameStatusRef.current !== 'playing') return
       if (isPausedRef.current) return
 
+      // Throttle : ne traiter un tick de jeu que si simTickMs s'est écoulé
+      const now = Date.now()
+      if (now - lastTickTimeRef.current < simTickMsRef.current) return
+      lastTickTimeRef.current = now
+
       tickRef.current += 1
       const tick = tickRef.current
       const ws   = windStrengthRef.current
@@ -289,7 +415,8 @@ export default function App() {
       let ev = activeEventRef.current
       if (ev === null) {
         if (tick >= nextEventTickRef.current) {
-          const applicable = EVENTS.filter(e => {
+          const cfg = levelConfigRef.current
+          let applicable = EVENTS.filter(e => {
             if (e.effectKey === 'greve'         && counts.coalMine  === 0) return false
             if (e.effectKey === 'penurie'       && counts.coalPlant === 0) return false
             if (e.effectKey === 'accident'      && counts.coalPlant === 0) return false
@@ -298,10 +425,27 @@ export default function App() {
             if (e.effectKey === 'journeeSoleil' && counts.solar     === 0) return false
             return true
           })
-          const pool     = applicable.length > 0 ? applicable : EVENTS.filter(e => !['greve','penurie','accident'].includes(e.effectKey))
+          // Filtrage par niveau
+          if (cfg?.availableEventIds && cfg.availableEventIds !== 'all') {
+            const allowed = cfg.availableEventIds
+            applicable = applicable.filter(e => allowed.includes(e.id))
+          }
+          const fallback = EVENTS.filter(e => {
+            if (!['greve','penurie','accident'].includes(e.effectKey)) {
+              const cfg2 = levelConfigRef.current
+              if (cfg2?.availableEventIds && cfg2.availableEventIds !== 'all') {
+                return cfg2.availableEventIds.includes(e.id)
+              }
+              return true
+            }
+            return false
+          })
+          const pool     = applicable.length > 0 ? applicable : fallback
           const newEvent = pool[Math.floor(Math.random() * pool.length)]
 
-          nextEventTickRef.current = tick + EVENT_INTERVAL_MIN + Math.floor(Math.random() * (EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN))
+          const eMin = cfg?.eventIntervalMin ?? EVENT_INTERVAL_MIN
+          const eMax = cfg?.eventIntervalMax ?? EVENT_INTERVAL_MAX
+          nextEventTickRef.current = tick + eMin + Math.floor(Math.random() * (eMax - eMin))
 
           // Effets instantanés
           if (newEvent.instantEffect?.health) {
@@ -316,6 +460,17 @@ export default function App() {
           setActiveEvent(ev)                   // ← notif HUD
           setDisasterPopup({ ...newEvent })
           setEventLog(log => [{ id: newEvent.id, name: newEvent.name, emoji: newEvent.emoji }, ...log.slice(0, 4)])
+          // En tutoriel : pause auto + step 18 au premier événement
+          if (levelConfigRef.current?.id === 'tutorial') {
+            isPausedRef.current = true
+            setIsPaused(true)
+            if (!tutEventShownRef.current && tutorialStepRef.current !== null &&
+              (tutorialStepRef.current === FREE_PLAY_STEP || tutorialStepRef.current < 21)) {
+              tutEventShownRef.current = true
+              tutorialStepRef.current  = 21
+              setTutorialStep(21)
+            }
+          }
         }
       } else {
         const newTimeLeft = ev.timeLeft - 1
@@ -353,7 +508,8 @@ export default function App() {
 
       // 5. Demande — source unique : computeDemand() dans buildings.js
       const pop    = populationRef.current
-      const demand = computeDemand(pop) * muls.demand
+      const demand = computeDemand(pop, levelConfigRef.current?.demandRates)
+                     * muls.demand * demandMultiplierRef.current
 
       // 6. Capacité de stockage ce tick
       const maxEnergyThisTick = BASE_STORAGE + counts.barrage * BUILDINGS.barrage.storagePerUnit
@@ -395,6 +551,67 @@ export default function App() {
         setGameStatus('lost')
         setLoseReason('Les habitants ont fui — la ville était plongée dans le noir trop longtemps.')
         return
+      }
+
+      // ── Triggers tutoriel (dans la boucle, après calcul déficit) ─
+      if (tutorialStepRef.current !== null) {
+        const ts = tutorialStepRef.current
+        // FREE_PLAY_STEP (99) = jeu libre après step 12, mais les triggers restent actifs
+        const isFP = ts === FREE_PLAY_STEP
+
+        // ① Déficit immédiat → step 14 (étapes ≥ 12 ou jeu libre)
+        if (uncoveredDeficit > 0 && (isFP || ts >= 12) && !tutDeficitShownRef.current) {
+          tutDeficitShownRef.current = true
+          tutorialStepRef.current    = 14
+          setTutorialStep(14)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
+
+        // ② Stock utilisé pour amortir → step 16 (étapes ≥ 12 ou jeu libre)
+        if (energyDraw > 0 && (isFP || ts >= 12) && !tutStorageUsedShownRef.current) {
+          tutStorageUsedShownRef.current = true
+          tutorialStepRef.current        = 16
+          setTutorialStep(16)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
+
+        // ③ Population ≥ 150 → step 17 (étapes ≥ 12 ou jeu libre)
+        if (tick % 15 === 0 && populationRef.current >= 150 && (isFP || ts >= 12) && !tutPop150ShownRef.current) {
+          tutPop150ShownRef.current = true
+          tutorialStepRef.current   = 17
+          setTutorialStep(17)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
+
+        // ④ Satisfaction < 75 → step 18 (étapes ≥ 12 ou jeu libre)
+        if (satisfactionRef.current < 75 && (isFP || ts >= 12) && !tutSatShownRef.current) {
+          tutSatShownRef.current  = true
+          tutorialStepRef.current = 18
+          setTutorialStep(18)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
+
+        // ⑤ Déficit post-milestone (pop ≥ 150) → step 19 (après step 17 ou jeu libre)
+        if (uncoveredDeficit > 0 && populationRef.current >= 150 && (isFP || ts >= 17) && !tutDeficit2ShownRef.current) {
+          tutDeficit2ShownRef.current = true
+          tutorialStepRef.current     = 19
+          setTutorialStep(19)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
+
+        // ⑥ Énergie proche du max (> 80%) → step 22 (étapes ≥ 12 ou jeu libre)
+        if (energyRef.current > maxEnergyThisTick * 0.8 && maxEnergyThisTick > 0 && (isFP || ts >= 12) && !tutEnergySaleShownRef.current) {
+          tutEnergySaleShownRef.current = true
+          tutorialStepRef.current       = 22
+          setTutorialStep(22)
+          isPausedRef.current = true
+          setIsPaused(true)
+        }
       }
 
       // 10. Pollution
@@ -444,18 +661,25 @@ export default function App() {
         setMoney(prev => Number((prev + pop * TAX_PER_POP).toFixed(2)))
       }
 
-      // 16. Compteur de jours
-      if (tick % TICKS_PER_DAY === 0) {
+      // 16. Compteur de jours (utilise ticksPerDay du niveau pour rester cohérent)
+      if (tick % ticksPerDayRef.current === 0) {
         setCurrentDay(d => d + 1)
       }
 
       // 17. Victoire
-      if (pop >= 500 && healthRef.current >= 60 && renewShare >= 50) {
+      const wc = levelConfigRef.current?.winCondition ?? { population: 500, health: 60, renewableShare: 50 }
+      if (pop >= wc.population && healthRef.current >= wc.health && renewShare >= wc.renewableShare) {
+        const lvlId = levelConfigRef.current?.id
+        if (lvlId) {
+          const done = JSON.parse(localStorage.getItem('enermix-completed') || '{}')
+          done[lvlId] = true
+          localStorage.setItem('enermix-completed', JSON.stringify(done))
+        }
         setGameStatus('won')
         return
       }
 
-    }, 1000)
+    }, 200)
 
     return () => {
       clearInterval(timer)
@@ -467,11 +691,19 @@ export default function App() {
   useEffect(() => {
     const t = setInterval(() => {
       if (isPausedRef.current) return
-      setIsDay(d => {
-        const next = !d
-        isDayRef.current = next
-        return next
-      })
+      // Calcul synchrone avant setIsDay pour éviter les stale closures
+      const nextIsDay = !isDayRef.current
+      isDayRef.current = nextIsDay
+      setIsDay(nextIsDay)
+
+      // Trigger step 13 à la première nuit (après que le jeu soit lancé)
+      if (!nextIsDay && !tutNightShownRef.current &&
+          tutorialStepRef.current !== null &&
+          (tutorialStepRef.current === FREE_PLAY_STEP || tutorialStepRef.current >= 12)) {
+        tutNightShownRef.current = true
+        tutorialStepRef.current  = 13
+        setTutorialStep(13)
+      }
     }, 10000)
     return () => clearInterval(t)
   }, [])
@@ -531,7 +763,17 @@ export default function App() {
       return newGrid
     })
     setPlacementError('')
-  }, [selectedBuilding, grid, money, activeEvent, buildingCounts, gameStatus])
+
+    // First-time building hint (Easy + Medium uniquement)
+    const lvl = levelConfigRef.current?.id
+    if ((lvl === 'easy' || lvl === 'medium') && !skipHints && !seenBuildings.has(selectedBuilding)) {
+      setSeenBuildings(prev => new Set([...prev, selectedBuilding]))
+      setNewBuildingHint(selectedBuilding)
+      // Pause le jeu le temps que le joueur lise l'aide
+      isPausedRef.current = true
+      setIsPaused(true)
+    }
+  }, [selectedBuilding, grid, money, activeEvent, buildingCounts, gameStatus, skipHints, seenBuildings])
 
   // ── Vente d'un bâtiment ────────────────────────────────────
   const confirmSell = useCallback(() => {
@@ -559,6 +801,51 @@ export default function App() {
     setEnergy(0)
   }, [energy])
 
+  // ── Sélection de niveau ────────────────────────────────────
+  const handleSelectLevel = useCallback((levelId) => {
+    const cfg = LEVEL_CONFIGS[levelId]
+    levelConfigRef.current       = cfg
+    demandMultiplierRef.current  = cfg.demandMultiplier
+    simTickMsRef.current         = cfg.simTickMs   ?? 1000
+    ticksPerDayRef.current       = cfg.ticksPerDay ?? 20
+    lastTickTimeRef.current      = 0   // force le premier tick immédiatement
+    setDemandMultiplier(cfg.demandMultiplier)
+    setMoney(cfg.initialMoney)
+    setLevel(levelId)
+    if (levelId === 'tutorial') {
+      setGrid(makeCleanGrid())   // pas de bâtiment pré-placé pour le tuto
+      setTutorialStep(0)
+      tutorialStepRef.current = 0
+    }
+    // Bulles intro pour Easy et Medium (le jeu est déjà pausé par défaut)
+    if (levelId === 'easy' || levelId === 'medium') {
+      setIntroBubbleIdx(0)
+    }
+  }, [])
+
+  // ── Pause depuis le tutoriel (sync immédiat du ref) ────────
+  const handleTutorialPause = useCallback((val) => {
+    isPausedRef.current = val
+    setIsPaused(val)
+  }, [])
+
+  // ── Bulles intro Easy/Medium ────────────────────────────────
+  // Dérivé du niveau courant — pas de state pour éviter la désynchronisation
+  const introBubbles = useMemo(() => {
+    if (level === 'easy')   return INTRO_BUBBLES_EASY
+    if (level === 'medium') return INTRO_BUBBLES_MEDIUM
+    return []
+  }, [level])
+
+  const handleIntroBubbleClose = useCallback(() => {
+    setIntroBubbleIdx(prev => {
+      if (prev === null) return null
+      const next = prev + 1
+      // Fin de la séquence → le jeu reste pausé, le joueur clique sur ▶ pour démarrer
+      return next >= introBubbles.length ? null : next
+    })
+  }, [introBubbles.length])
+
   // ── Toggle pause ───────────────────────────────────────────
   const handleTogglePause = useCallback(() => {
     setIsPaused(p => {
@@ -580,7 +867,28 @@ export default function App() {
     setActiveEvent(null); setEventLog([]); setDisasterPopup(null); setEndedEvent(null)
     setWindStrength(0.5); setWindAngle(225)
     setIsPaused(true); setHasEverStarted(false)
+    // Retour au menu de sélection de niveau
+    setLevel(null); setTutorialStep(null)
+    setDemandMultiplier(1.0)
+    levelConfigRef.current      = null
+    demandMultiplierRef.current = 1.0
+    // Réinitialiser les aides Easy/Medium
+    setSeenBuildings(new Set()); setNewBuildingHint(null); setSkipHints(false)
+    setIntroBubbleIdx(null)
+    // Réinitialiser les flags tutoriel
+    tutorialStepRef.current        = null
+    tutDeficitShownRef.current     = false
+    tutDeficit2ShownRef.current    = false
+    tutStorageUsedShownRef.current = false
+    tutPop150ShownRef.current      = false
+    tutSatShownRef.current         = false
+    tutEventShownRef.current       = false
+    tutEnergySaleShownRef.current  = false
+    tutNightShownRef.current       = false
     tickRef.current = 0
+    lastTickTimeRef.current = 0
+    simTickMsRef.current    = 1000
+    ticksPerDayRef.current  = 20
     nextEventTickRef.current = makeInitialEventTimer()
     lastGrowthThresholdRef.current = 2
     isDayRef.current = true; healthRef.current = 100
@@ -595,6 +903,13 @@ export default function App() {
   }, [])
 
   // ── Rendu ──────────────────────────────────────────────────
+  if (level === null) {
+    return <LevelSelect onSelect={handleSelectLevel} />
+  }
+
+  const winCond = LEVEL_CONFIGS[level]?.winCondition ?? { population: 500, health: 60, renewableShare: 50 }
+  const availableBuildings = LEVEL_CONFIGS[level]?.availableBuildings ?? 'all'
+
   return (
     <div className={`app ${isDay ? 'app--day' : 'app--night'}`}>
 
@@ -626,7 +941,7 @@ export default function App() {
           <span className="app-header__day">{isDay ? '☀️' : '🌙'} Jour {currentDay}</span>
         </div>
         <p className="app-header__subtitle">
-          Objectif : 500 hab · santé ≥ 60 · 🌱 ≥ 50%
+          Objectif : {winCond.population} hab · santé ≥ {winCond.health} · 🌱 ≥ {winCond.renewableShare}%
         </p>
       </header>
 
@@ -643,6 +958,7 @@ export default function App() {
         sellTarget={sellTarget}
         onConfirmSell={confirmSell}
         onCancelSell={cancelSell}
+        availableBuildings={availableBuildings}
       />
 
       {/* ── HUD droit ── */}
@@ -680,6 +996,77 @@ export default function App() {
 
       <GameOver gameStatus={gameStatus} loseReason={loseReason} onRestart={resetGame} />
       <DisasterPopup event={disasterPopup} onDismiss={dismissPopup} />
+
+      {/* ── Tutoriel ── */}
+      {level === 'tutorial' && tutorialStep !== null && (
+        <TutorialOverlay
+          step={tutorialStep}
+          grid={grid}
+          energy={energy}
+          deficitRatio={deficitRatio}
+          isPaused={isPaused}
+          isDay={isDay}
+          onPause={handleTutorialPause}
+          onAdvance={(targetStep) => {
+            tutorialStepRef.current = targetStep
+            setTutorialStep(targetStep)
+          }}
+          onComplete={() => {
+            tutorialStepRef.current = null
+            setTutorialStep(null)
+          }}
+        />
+      )}
+
+      {/* ── Bulles intro Easy/Medium (séquence guidée au démarrage du niveau) ── */}
+      {introBubbleIdx !== null && introBubbles[introBubbleIdx] && (
+        <ComponentBubble
+          {...introBubbles[introBubbleIdx]}
+          step={introBubbleIdx}
+          total={introBubbles.length}
+          onClose={handleIntroBubbleClose}
+        />
+      )}
+
+      {/* ── Indicateurs contextuels (Easy + Medium) — pausent le jeu tant que non fermés ── */}
+      {(level === 'easy' || level === 'medium') && (
+        <EasyIndicators
+          deficitRatio={deficitRatio}
+          satisfaction={satisfaction}
+          health={health}
+          pollution={pollution}
+          skipHints={skipHints}
+          onPause={handleTutorialPause}
+        />
+      )}
+
+      {/* ── Aide premier bâtiment (Easy + Medium) ── */}
+      {newBuildingHint && (
+        <div className="building-hint-overlay">
+          <div className="building-hint-box">
+            <div className="building-hint__emoji">{BUILDINGS[newBuildingHint]?.emoji}</div>
+            <div className="building-hint__title">{BUILDINGS[newBuildingHint]?.label}</div>
+            <div className="building-hint__desc">{BUILDINGS[newBuildingHint]?.tooltip}</div>
+            <button className="building-hint__btn" onClick={() => {
+              setNewBuildingHint(null)
+              handleTutorialPause(false)   // reprend le jeu
+            }}>
+              Compris !
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bouton "Passer les aides" (Easy + Medium uniquement) ── */}
+      {(level === 'easy' || level === 'medium') && !skipHints && (
+        <button
+          className="skip-hints-btn"
+          onClick={() => setSkipHints(true)}
+          title="Désactiver les aides contextuelles"
+        >
+          Passer les aides
+        </button>
+      )}
     </div>
   )
 }
