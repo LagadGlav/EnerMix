@@ -9,12 +9,14 @@ export const TILE_TYPES = {
 
 // Identifiants des bâtiments (valeurs stockées dans tile.building)
 export const BUILDING_TYPES = {
-  SOLAR:      'solar',
-  WIND:       'wind',
-  GEOTHERMAL: 'geothermal',
-  COAL_MINE:  'coalMine',
-  COAL_PLANT: 'coalPlant',
-  BARRAGE:    'barrage',
+  SOLAR:         'solar',
+  WIND:          'wind',
+  GEOTHERMAL:    'geothermal',
+  COAL_MINE:     'coalMine',
+  COAL_PLANT:    'coalPlant',
+  BARRAGE:       'barrage',
+  URANIUM_MINE:  'uraniumMine',
+  NUCLEAR_PLANT: 'nuclearPlant',
 }
 
 // Capacité de stockage de base (sans barrage)
@@ -94,6 +96,32 @@ export const BUILDINGS = {
     allowedOn: [TILE_TYPES.RIVER],
     get description() { return `+${this.storagePerUnit} kWh de stockage` },
     get tooltip()     { return `Stocke l'excédent, le réinjecte en déficit. +${this.storagePerUnit} kWh par barrage. Rivières uniquement.` },
+  },
+  uraniumMine: {
+    id: 'uraniumMine',
+    label: "Mine d'uranium",
+    emoji: '⚛️',
+    cost: 40,
+    prodPerUnit: 0,
+    pollutionPerSecond: 0.05, // SEULE VALEUR À MODIFIER
+    isRenewable: false,
+    allowedOn: [TILE_TYPES.MOUNTAIN],
+    hardModeOnly: true,
+    get description() { return `Active les centrales nucléaires (+${this.pollutionPerSecond} poll/s)` },
+    tooltip: "Combustible pour les centrales nucléaires. Montagnes uniquement.",
+  },
+  nuclearPlant: {
+    id: 'nuclearPlant',
+    label: 'Centrale nucléaire',
+    emoji: '☢️',
+    cost: 180,
+    prodPerUnit: 20,         // kWh/s si mines suffisantes — SEULE VALEUR À MODIFIER
+    pollutionPerSecond: 0,
+    isRenewable: false,
+    allowedOn: [TILE_TYPES.EMPTY],
+    hardModeOnly: true,
+    get description() { return `+${this.prodPerUnit} kWh/s (requiert mine uranium) · 0 pollution` },
+    tooltip: "Très puissante et propre en fonctionnement normal. Requiert mines d'uranium. Risque d'incident grave !",
   },
 }
 

@@ -297,7 +297,7 @@ export default function App() {
 
   // ── Dérivés mémoïsés ───────────────────────────────────────
   const buildingCounts = useMemo(() => {
-    const counts = { solar: 0, wind: 0, geothermal: 0, coalMine: 0, coalPlant: 0, barrage: 0 }
+    const counts = { solar: 0, wind: 0, geothermal: 0, coalMine: 0, coalPlant: 0, barrage: 0, uraniumMine: 0, nuclearPlant: 0 }
     for (const tile of grid) {
       if (tile.building && counts[tile.building] !== undefined) counts[tile.building]++
     }
@@ -314,38 +314,50 @@ export default function App() {
   , [buildingCounts.barrage])
 
   const totalProduction = useMemo(() => {
-    const ev     = activeEvent
-    const mSolar = ev?.effectKey === 'canicule' ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : 1
-    const mWind  = ev?.effectKey === 'tempete'  ? 0 : 1
-    const mMine  = ev?.effectKey === 'greve'    ? 0 : 1
-    const mCoal  = ev?.effectKey === 'penurie' ? 0.5 : ev?.effectKey === 'accident' ? 0 : 1
-    const solarProd     = buildingCounts.solar      * BUILDINGS.solar.prodPerUnit      * (isDay ? 1 : 0) * mSolar
-    const windProd      = buildingCounts.wind       * BUILDINGS.wind.prodPerUnit       * windStrength    * mWind
-    const geoThermProd  = buildingCounts.geothermal * BUILDINGS.geothermal.prodPerUnit
-    const coalEff       = buildingCounts.coalPlant > 0
+    const ev      = activeEvent
+    const mSolar  = ev?.effectKey === 'canicule' ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : ev?.effectKey === 'tempeteSable' ? 0.5 : 1
+    const mWind   = ev?.effectKey === 'tempete' ? 0 : ev?.effectKey === 'coupDeVent' ? 1.5 : 1
+    const mGeo    = ev?.effectKey === 'seisme' ? 0 : 1
+    const mMine   = ev?.effectKey === 'greve'    ? 0 : 1
+    const mCoal   = ev?.effectKey === 'penurie' ? 0.5 : ev?.effectKey === 'accident' ? 0 : 1
+    const mNuclear = ev?.effectKey === 'incidentNucleaire' ? 0 : 1
+    const solarProd    = buildingCounts.solar      * BUILDINGS.solar.prodPerUnit      * (isDay ? 1 : 0) * mSolar
+    const windProd     = buildingCounts.wind       * BUILDINGS.wind.prodPerUnit       * windStrength    * mWind
+    const geoThermProd = buildingCounts.geothermal * BUILDINGS.geothermal.prodPerUnit                  * mGeo
+    const coalEff      = buildingCounts.coalPlant > 0
       ? Math.min(1, (buildingCounts.coalMine * mMine) / buildingCounts.coalPlant) : 0
-    const coalProd      = buildingCounts.coalPlant  * BUILDINGS.coalPlant.prodPerUnit  * coalEff * mCoal
-    return Number((solarProd + windProd + geoThermProd + coalProd).toFixed(2))
+    const coalProd     = buildingCounts.coalPlant  * BUILDINGS.coalPlant.prodPerUnit  * coalEff * mCoal
+    const nuclearEff   = buildingCounts.nuclearPlant > 0
+      ? Math.min(1, buildingCounts.uraniumMine / buildingCounts.nuclearPlant) : 0
+    const nuclearProd  = buildingCounts.nuclearPlant * BUILDINGS.nuclearPlant.prodPerUnit * nuclearEff * mNuclear
+    return Number((solarProd + windProd + geoThermProd + coalProd + nuclearProd).toFixed(2))
   }, [buildingCounts, isDay, windStrength, activeEvent])
 
   const productionBreakdown = useMemo(() => {
-    const ev = activeEvent
-    const mSolar = ev?.effectKey === 'canicule' ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : 1
-    const mWind  = ev?.effectKey === 'tempete'  ? 0 : 1
-    const mMine  = ev?.effectKey === 'greve'    ? 0 : 1
-    const mCoal  = ev?.effectKey === 'penurie' ? 0.5 : ev?.effectKey === 'accident' ? 0 : 1
-    const solarUnit = BUILDINGS.solar.prodPerUnit     * (isDay ? 1 : 0) * mSolar
-    const windUnit  = BUILDINGS.wind.prodPerUnit      * windStrength    * mWind
-    const geoUnit   = BUILDINGS.geothermal.prodPerUnit  // toujours constant
-    const eff = buildingCounts.coalPlant > 0
+    const ev      = activeEvent
+    const mSolar  = ev?.effectKey === 'canicule' ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : ev?.effectKey === 'tempeteSable' ? 0.5 : 1
+    const mWind   = ev?.effectKey === 'tempete' ? 0 : ev?.effectKey === 'coupDeVent' ? 1.5 : 1
+    const mGeo    = ev?.effectKey === 'seisme' ? 0 : 1
+    const mMine   = ev?.effectKey === 'greve'    ? 0 : 1
+    const mCoal   = ev?.effectKey === 'penurie' ? 0.5 : ev?.effectKey === 'accident' ? 0 : 1
+    const mNuclear = ev?.effectKey === 'incidentNucleaire' ? 0 : 1
+    const solarUnit   = BUILDINGS.solar.prodPerUnit      * (isDay ? 1 : 0) * mSolar
+    const windUnit    = BUILDINGS.wind.prodPerUnit       * windStrength    * mWind
+    const geoUnit     = BUILDINGS.geothermal.prodPerUnit                   * mGeo
+    const coalEff     = buildingCounts.coalPlant > 0
       ? Math.min(1, (buildingCounts.coalMine * mMine) / buildingCounts.coalPlant) : 0
-    const coalUnit  = BUILDINGS.coalPlant.prodPerUnit * eff * mCoal
+    const coalUnit    = BUILDINGS.coalPlant.prodPerUnit  * coalEff * mCoal
+    const nuclearEff  = buildingCounts.nuclearPlant > 0
+      ? Math.min(1, buildingCounts.uraniumMine / buildingCounts.nuclearPlant) : 0
+    const nuclearUnit = BUILDINGS.nuclearPlant.prodPerUnit * nuclearEff * mNuclear
     return {
-      solar:       { count: buildingCounts.solar,      unit: solarUnit, total: buildingCounts.solar      * solarUnit },
-      wind:        { count: buildingCounts.wind,        unit: windUnit,  total: buildingCounts.wind       * windUnit  },
-      geothermal:  { count: buildingCounts.geothermal,  unit: geoUnit,   total: buildingCounts.geothermal * geoUnit   },
-      coalMine:    { count: buildingCounts.coalMine,    active: Math.round(buildingCounts.coalMine * mMine) },
-      coalPlant:   { count: buildingCounts.coalPlant,   unit: coalUnit,  total: buildingCounts.coalPlant  * coalUnit  },
+      solar:        { count: buildingCounts.solar,        unit: solarUnit,   total: buildingCounts.solar        * solarUnit   },
+      wind:         { count: buildingCounts.wind,         unit: windUnit,    total: buildingCounts.wind         * windUnit    },
+      geothermal:   { count: buildingCounts.geothermal,   unit: geoUnit,     total: buildingCounts.geothermal   * geoUnit     },
+      coalMine:     { count: buildingCounts.coalMine,     active: Math.round(buildingCounts.coalMine * mMine) },
+      coalPlant:    { count: buildingCounts.coalPlant,    unit: coalUnit,    total: buildingCounts.coalPlant    * coalUnit    },
+      uraniumMine:  { count: buildingCounts.uraniumMine,  active: buildingCounts.uraniumMine },
+      nuclearPlant: { count: buildingCounts.nuclearPlant, unit: nuclearUnit, total: buildingCounts.nuclearPlant * nuclearUnit },
     }
   }, [buildingCounts, isDay, activeEvent, windStrength])
 
@@ -405,7 +417,7 @@ export default function App() {
 
       // 1. Compter bâtiments
       const g      = gridRef.current
-      const counts = { solar: 0, wind: 0, geothermal: 0, coalMine: 0, coalPlant: 0, barrage: 0 }
+      const counts = { solar: 0, wind: 0, geothermal: 0, coalMine: 0, coalPlant: 0, barrage: 0, uraniumMine: 0, nuclearPlant: 0 }
       for (const tile of g) {
         if (tile.building && counts[tile.building] !== undefined) counts[tile.building]++
       }
@@ -417,12 +429,17 @@ export default function App() {
         if (tick >= nextEventTickRef.current) {
           const cfg = levelConfigRef.current
           let applicable = EVENTS.filter(e => {
-            if (e.effectKey === 'greve'         && counts.coalMine  === 0) return false
-            if (e.effectKey === 'penurie'       && counts.coalPlant === 0) return false
-            if (e.effectKey === 'accident'      && counts.coalPlant === 0) return false
-            if (e.effectKey === 'tempete'       && counts.wind      === 0) return false
-            if (e.effectKey === 'canicule'      && counts.solar     === 0) return false
-            if (e.effectKey === 'journeeSoleil' && counts.solar     === 0) return false
+            if (e.hardModeOnly && levelConfigRef.current?.id !== 'hard') return false
+            if (e.effectKey === 'greve'             && counts.coalMine     === 0) return false
+            if (e.effectKey === 'penurie'           && counts.coalPlant    === 0) return false
+            if (e.effectKey === 'accident'          && counts.coalPlant    === 0) return false
+            if (e.effectKey === 'tempete'           && counts.wind         === 0) return false
+            if (e.effectKey === 'canicule'          && counts.solar        === 0) return false
+            if (e.effectKey === 'journeeSoleil'     && counts.solar        === 0) return false
+            if (e.effectKey === 'tempeteSable'      && counts.solar        === 0) return false
+            if (e.effectKey === 'seisme'            && counts.geothermal   === 0) return false
+            if (e.effectKey === 'coupDeVent'        && counts.wind         === 0) return false
+            if (e.effectKey === 'incidentNucleaire' && counts.nuclearPlant === 0) return false
             return true
           })
           // Filtrage par niveau
@@ -431,6 +448,7 @@ export default function App() {
             applicable = applicable.filter(e => allowed.includes(e.id))
           }
           const fallback = EVENTS.filter(e => {
+            if (e.hardModeOnly && levelConfigRef.current?.id !== 'hard') return false
             if (!['greve','penurie','accident'].includes(e.effectKey)) {
               const cfg2 = levelConfigRef.current
               if (cfg2?.availableEventIds && cfg2.availableEventIds !== 'all') {
@@ -489,8 +507,10 @@ export default function App() {
 
       // 3. Multiplicateurs d'événement (utilise ev du tick courant, sans délai)
       const muls = {
-        solar:         ev?.effectKey === 'canicule'     ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : 1,
-        wind:          ev?.effectKey === 'tempete'      ? 0   : 1,
+        solar:         ev?.effectKey === 'canicule' ? 1.5 : ev?.effectKey === 'journeeSoleil' ? 2 : ev?.effectKey === 'tempeteSable' ? 0.5 : 1,
+        wind:          ev?.effectKey === 'tempete'  ? 0   : ev?.effectKey === 'coupDeVent' ? 1.5 : 1,
+        geothermal:    ev?.effectKey === 'seisme'         ? 0   : 1,
+        nuclear:       ev?.effectKey === 'incidentNucleaire' ? 0 : 1,
         coalMine:      ev?.effectKey === 'greve'        ? 0   : 1,
         coalProd:      ev?.effectKey === 'penurie' ? 0.5 : ev?.effectKey === 'accident' ? 0 : 1,
         coalPollution: ev?.effectKey === 'accident'     ? 2   : 1,
@@ -498,13 +518,15 @@ export default function App() {
       }
 
       // 4. Productions
-      const solarProd          = counts.solar      * BUILDINGS.solar.prodPerUnit      * (isDayRef.current ? 1 : 0) * muls.solar
-      const windProd           = counts.wind       * BUILDINGS.wind.prodPerUnit       * ws                          * muls.wind
-      const geothermalProd     = counts.geothermal * BUILDINGS.geothermal.prodPerUnit
-      const effectiveCoalMines = counts.coalMine   * muls.coalMine
+      const solarProd          = counts.solar       * BUILDINGS.solar.prodPerUnit       * (isDayRef.current ? 1 : 0) * muls.solar
+      const windProd           = counts.wind        * BUILDINGS.wind.prodPerUnit        * ws                          * muls.wind
+      const geothermalProd     = counts.geothermal  * BUILDINGS.geothermal.prodPerUnit                               * muls.geothermal
+      const effectiveCoalMines = counts.coalMine    * muls.coalMine
       const coalEff            = counts.coalPlant > 0 ? Math.min(1, effectiveCoalMines / counts.coalPlant) : 0
-      const coalProd           = counts.coalPlant  * BUILDINGS.coalPlant.prodPerUnit  * coalEff                     * muls.coalProd
-      const totalProd          = solarProd + windProd + geothermalProd + coalProd
+      const coalProd           = counts.coalPlant   * BUILDINGS.coalPlant.prodPerUnit   * coalEff                     * muls.coalProd
+      const nuclearEff         = counts.nuclearPlant > 0 ? Math.min(1, counts.uraniumMine / counts.nuclearPlant) : 0
+      const nuclearProd        = counts.nuclearPlant * BUILDINGS.nuclearPlant.prodPerUnit * nuclearEff               * muls.nuclear
+      const totalProd          = solarProd + windProd + geothermalProd + coalProd + nuclearProd
 
       // 5. Demande — source unique : computeDemand() dans buildings.js
       const pop    = populationRef.current
@@ -518,7 +540,7 @@ export default function App() {
       const surplus    = totalProd - demand
       const rawDeficit = Math.max(0, -surplus)
 
-      // 7b. Part renouvelable
+      // 7b. Part renouvelable (nuclear n'est pas renouvelable)
       const renewShare = totalProd > 0 ? Math.round(((solarProd + windProd + geothermalProd) / totalProd) * 100) : 0
       setRenewableShare(renewShare)
 
@@ -616,7 +638,8 @@ export default function App() {
 
       // 10. Pollution
       const pollAdd    = (counts.coalMine  * BUILDINGS.coalMine.pollutionPerSecond
-                       + counts.coalPlant * BUILDINGS.coalPlant.pollutionPerSecond * coalEff) * muls.coalPollution
+                       + counts.coalPlant * BUILDINGS.coalPlant.pollutionPerSecond * coalEff
+                       + counts.uraniumMine * BUILDINGS.uraniumMine.pollutionPerSecond) * muls.coalPollution
       const pollRemove = ws * 1.2
       setPollution(prev => Math.max(0, Math.min(100, Number((prev + pollAdd - pollRemove).toFixed(2)))))
 
@@ -908,7 +931,15 @@ export default function App() {
   }
 
   const winCond = LEVEL_CONFIGS[level]?.winCondition ?? { population: 500, health: 60, renewableShare: 50 }
-  const availableBuildings = LEVEL_CONFIGS[level]?.availableBuildings ?? 'all'
+  const availableBuildings = useMemo(() => {
+    const raw = LEVEL_CONFIGS[level]?.availableBuildings ?? 'all'
+    if (raw === 'all') {
+      return level === 'hard'
+        ? Object.values(BUILDINGS).map(b => b.id)
+        : Object.values(BUILDINGS).filter(b => !b.hardModeOnly).map(b => b.id)
+    }
+    return raw
+  }, [level])
 
   return (
     <div className={`app ${isDay ? 'app--day' : 'app--night'}`}>
