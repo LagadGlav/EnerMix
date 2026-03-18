@@ -23,42 +23,42 @@ const STEPS = [
   { // 3
     title: 'Ton tableau de bord 📊',
     text: "Ce tableau à droite est ton centre de contrôle. Je vais te présenter chaque indicateur un par un — lis bien chacune des aides !",
-    pos: 'panel', highlight: 'hud-panel', pauseGame: true, btnLabel: 'Allons-y !',
+    pos: 'hud', highlight: 'hud-panel', pauseGame: true, btnLabel: 'Allons-y !',
   },
   { // 4
     title: '💰 L\'argent et les taxes',
     text: "Tes habitants paient des taxes automatiquement. Plus tu as de population, plus tu gagnes. Utilise cet argent pour construire de nouvelles installations !",
-    pos: 'center', highlight: 'hud-money', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-money', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 5
     title: '⚡ Production vs Demande',
     text: "Surveille la ligne 'Surplus / Déficit'. Si ta production ≥ demande = surplus ✅. Si ta production < demande = déficit ⚠️ — agis vite avant que la satisfaction chute !",
-    pos: 'center', highlight: 'hud-energy', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-energy', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 6
     title: '🔋 Le stockage',
     text: "Le barrage stocke l'énergie en surplus et la restitue automatiquement si tu tombes en déficit. Un stockage plein = sécurité face aux imprévus.",
-    pos: 'center', highlight: 'hud-storage', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-storage', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 7
     title: '🌬️ La force du vent',
     text: "La force du vent varie en permanence — c'est normal ! Quand il est fort, tes éoliennes produisent plus. Quand il faiblit, elles ralentissent. Observe l'indicateur !",
-    pos: 'center', highlight: 'hud-wind', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-wind', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 8
     title: '☁️❤️ Pollution et santé',
     text: "La pollution monte quand tu utilises du charbon et réduit la santé ❤️. Si la santé tombe à 0 → GAME OVER. Seules les mines et les centrales à charbon sont polluantes !",
-    pos: 'center', highlight: 'hud-pollution', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-pollution', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 9
     title: '😊 Satisfaction des habitants',
     text: "Elle reflète le bonheur de tes habitants. Un déficit ou une mauvaise santé la fait baisser. Si elle atteint 0, les habitants fuient → GAME OVER !",
-    pos: 'center', highlight: 'hud-satisfaction', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-satisfaction', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 10
     title: '👥 Population et croissance',
     text: "La population grandit automatiquement si la santé est bonne. Plus d'habitants = plus de taxes, mais aussi plus de demande en énergie. Prévois toujours une marge !",
-    pos: 'center', highlight: 'hud-population', pauseGame: true, btnLabel: 'Compris !',
+    pos: 'hud', highlight: 'hud-population', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 11
     title: 'Construis un barrage 🏞️',
@@ -68,7 +68,7 @@ const STEPS = [
   },
   { // 12
     title: 'Lance le jeu ▶',
-    text: "Tout est prêt ! Clique sur ▶ en haut de l'écran pour lancer la simulation. Les chiffres du tableau de bord vont commencer à changer — observe-les bien !",
+    text: "Tout est prêt ! Clique sur ▶ en bas de l'écran pour lancer la simulation. Les chiffres du tableau de bord vont commencer à changer — observe-les bien !",
     pos: 'top', highlight: 'pause-widget', pauseGame: true,
     waitFor: 'started', waiting: 'Clique sur ▶ pour démarrer...',
   },
