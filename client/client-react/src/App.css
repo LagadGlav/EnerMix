@@ -2271,14 +2271,13 @@ body, html, #root {
 
 /* ── Surbrillance tutoriel (pulsante) ── */
 .tutorial-highlight {
-  outline: 2.5px solid rgba(255, 183, 3, 0.9) !important;
+  outline: 4px solid rgba(255, 183, 3, 0.9) !important;
   box-shadow:
     0 0 0 4px rgba(255,183,3,0.22),
     0 0 18px rgba(255,183,3,0.30) !important;
   border-radius: 10px !important;
   z-index: 101;
   animation: tutPulse 1.8s ease-in-out infinite;
-  position: relative;
 }
 
 @keyframes tutPulse {
