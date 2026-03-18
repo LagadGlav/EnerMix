@@ -34,7 +34,7 @@ const LEVEL_LIST = [
     emoji: '🔥',
     label: 'Fort',
     color: '#ef4444',
-    description: 'Jeu complet — demande agressive + nucléaire',
+    description: 'Jeu complet — demande agressive',
     buildings: 'Tous les bâtiments + ☢️ nucléaire',
     events: 'Tous + catastrophes exclusives',
     winNote: '500 hab · santé ≥ 60 · 🌱 ≥ 50%',

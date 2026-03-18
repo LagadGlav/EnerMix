@@ -37,8 +37,8 @@ const LEVEL_CONFIGS = {
     eventIntervalMin: 80, eventIntervalMax: 150,
     winCondition: { population: 150, health: 50, renewableShare: 30 },
     initialMoney: 200,
-    simTickMs: 3000,   // 1 tick de jeu toutes les 3s (plus lent pour les élèves)
-    ticksPerDay: 7,    // 7 × 3s ≈ 21s par jour (même durée réelle qu'en medium)
+    simTickMs: 2000,   // 1 tick de jeu toutes les 2s (plus lent pour les élèves)
+    ticksPerDay: 10,
   },
   easy: {
     id: 'easy',
@@ -66,8 +66,8 @@ const LEVEL_CONFIGS = {
     id: 'hard',
     availableBuildings: 'all', availableEventIds: 'all',
     demandMultiplier: 1.0,
-    eventIntervalMin: 40, eventIntervalMax: 100,
-    winCondition: { population: 500, health: 60, renewableShare: 50 },
+    eventIntervalMin: 20, eventIntervalMax: 100,
+    winCondition: { population: 600, health: 60, renewableShare: 50 },
     initialMoney: 120,
     simTickMs: 1000,
     ticksPerDay: 20,
