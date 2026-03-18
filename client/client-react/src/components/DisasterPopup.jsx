@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const POSITIVE_EVENTS = new Set(['subvention', 'journeeSoleil', 'canicule'])
+const POSITIVE_EVENTS = new Set(['subvention', 'journeeSoleil', 'canicule', 'coupDeVentExceptionnel'])
 
 export default function DisasterPopup({ event, onDismiss }) {
   const [progress, setProgress] = useState(100)
