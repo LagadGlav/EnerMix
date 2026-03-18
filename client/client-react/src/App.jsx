@@ -931,15 +931,12 @@ export default function App() {
   }
 
   const winCond = LEVEL_CONFIGS[level]?.winCondition ?? { population: 500, health: 60, renewableShare: 50 }
-  const availableBuildings = useMemo(() => {
-    const raw = LEVEL_CONFIGS[level]?.availableBuildings ?? 'all'
-    if (raw === 'all') {
-      return level === 'hard'
+  const _rawBuildings = LEVEL_CONFIGS[level]?.availableBuildings ?? 'all'
+  const availableBuildings = _rawBuildings === 'all'
+    ? (level === 'hard'
         ? Object.values(BUILDINGS).map(b => b.id)
-        : Object.values(BUILDINGS).filter(b => !b.hardModeOnly).map(b => b.id)
-    }
-    return raw
-  }, [level])
+        : Object.values(BUILDINGS).filter(b => !b.hardModeOnly).map(b => b.id))
+    : _rawBuildings
 
   return (
     <div className={`app ${isDay ? 'app--day' : 'app--night'}`}>

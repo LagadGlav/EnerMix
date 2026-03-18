@@ -8,8 +8,12 @@ function getEventEffects(effectKey) {
     case 'demandePlus':  return ['🏙️ Demande électrique +50% !', '⚡ Plus de production nécessaire']
     case 'accident':     return ['🏭 Centrales à charbon hors-ligne !', '☣️ Pollution ×2 !', '🚨 Dommages immédiats sur la santé']
     case 'journeeSoleil':return ['☀️ Solaire ×2 de puissance !']
-    case 'penurie':      return ['📦 Pénurie charbon → centrale à 50%', '🔋 Cherche d\'autres sources']
-    default:             return []
+    case 'penurie':           return ['📦 Pénurie charbon → centrale à 50%', '🔋 Cherche d\'autres sources']
+    case 'tempeteSable':      return ['🏜️ Solaire −50% de puissance', '💨 Nuages de sable bloquent les panneaux']
+    case 'seisme':            return ['🌍 Géothermie hors-ligne !', '⚡ Installations endommagées', '🚨 Impact sanitaire immédiat']
+    case 'coupDeVent':        return ['💨 Éoliennes en surrégime !', '⚡ Production éolienne +50%', '🎯 Profites-en pour stocker !']
+    case 'incidentNucleaire': return ['☢️ Centrale nucléaire ARRÊTÉE !', '🚨 Alerte sanitaire sévère', '⚡ Perte de production massive']
+    default:                  return []
   }
 }
 
@@ -121,7 +125,7 @@ export default function HUD({
       </div>
 
       {/* Détail de production par type */}
-      {bd && (bd.solar.count > 0 || bd.wind.count > 0 || bd.geothermal.count > 0 || bd.coalMine.count > 0 || bd.coalPlant.count > 0) && (
+      {bd && (bd.solar.count > 0 || bd.wind.count > 0 || bd.geothermal.count > 0 || bd.coalMine.count > 0 || bd.coalPlant.count > 0 || bd.uraniumMine?.count > 0 || bd.nuclearPlant?.count > 0) && (
         <div className="hud__section">
           <div className="hud__stat" style={{ opacity: 0.55, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <span>Détail</span>
@@ -139,9 +143,9 @@ export default function HUD({
             </div>
           )}
           {bd.geothermal.count > 0 && (
-            <div className="hud__detail-row hud__detail-row--geo">
+            <div className={`hud__detail-row hud__detail-row--geo${bd.geothermal.unit === 0 ? ' hud__detail-row--muted' : ''}`}>
               <span>♨️ ×{bd.geothermal.count}</span>
-              <span>{bd.geothermal.total.toFixed(1)} kWh/s</span>
+              <span>{bd.geothermal.unit === 0 ? 'hors-ligne (séisme !)' : `${bd.geothermal.total.toFixed(1)} kWh/s`}</span>
             </div>
           )}
           {bd.coalMine.count > 0 && (
@@ -154,6 +158,18 @@ export default function HUD({
             <div className="hud__detail-row">
               <span>🏭 ×{bd.coalPlant.count}</span>
               <span>{bd.coalPlant.total.toFixed(1)} kWh/s</span>
+            </div>
+          )}
+          {bd.uraniumMine?.count > 0 && (
+            <div className="hud__detail-row">
+              <span>⚛️ ×{bd.uraniumMine.count}</span>
+              <span>{bd.uraniumMine.active} active(s)</span>
+            </div>
+          )}
+          {bd.nuclearPlant?.count > 0 && (
+            <div className={`hud__detail-row${bd.nuclearPlant.unit === 0 ? ' hud__detail-row--muted' : ''}`}>
+              <span>☢️ ×{bd.nuclearPlant.count}</span>
+              <span>{bd.nuclearPlant.unit === 0 ? 'arrêtée (incident !)' : `${bd.nuclearPlant.total.toFixed(1)} kWh/s`}</span>
             </div>
           )}
         </div>

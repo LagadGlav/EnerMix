@@ -1361,6 +1361,135 @@ body, html, #root {
 .sprite-mine__crosstie--2 { left: 45%; }
 .sprite-mine__crosstie--3 { left: 80%; }
 
+/* ---- Mine d'uranium ---- */
+.sprite-uranium-mine {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.sprite-uranium-mine__beam {
+  position: absolute;
+  bottom: 30%;
+  width: 5px;
+  height: 28%;
+  background: #c4a020;
+  border-radius: 2px 2px 0 0;
+}
+.sprite-uranium-mine__beam--l { left: 24%; }
+.sprite-uranium-mine__beam--r { right: 24%; }
+.sprite-uranium-mine__roof {
+  position: absolute;
+  bottom: 52%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 12px solid #7a5800;
+}
+.sprite-uranium-mine__entrance {
+  position: absolute;
+  bottom: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38%;
+  height: 13%;
+  background: #120d00;
+  border-radius: 50% 50% 0 0;
+}
+.sprite-uranium-mine__barrel {
+  position: absolute;
+  bottom: 6%;
+  left: 10%;
+  width: 13%;
+  height: 18%;
+  background: #e6c200;
+  border-radius: 2px;
+  border: 1.5px solid #7a5800;
+}
+.sprite-uranium-mine__barrel--2 {
+  left: 27%;
+  background: #d0ae00;
+}
+.sprite-uranium-mine__sign {
+  position: absolute;
+  top: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 11px;
+  height: 11px;
+  background: #f0e040;
+  border-radius: 2px;
+  border: 1.5px solid #7a5800;
+  box-shadow: 0 0 4px rgba(240,224,64,0.7);
+}
+
+/* ---- Centrale nucléaire ---- */
+.sprite-nuclear {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.sprite-nuclear__tower {
+  position: absolute;
+  bottom: 16%;
+  clip-path: polygon(18% 100%, 82% 100%, 68% 0%, 32% 0%);
+  background: #8a9eac;
+}
+.sprite-nuclear__tower--l {
+  left: 2%;
+  width: 44%;
+  height: 66%;
+}
+.sprite-nuclear__tower--r {
+  right: 3%;
+  width: 32%;
+  height: 50%;
+}
+.sprite-nuclear__steam {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.75);
+  border-radius: 50%;
+  animation: nuclear-steam 2.2s ease-in infinite;
+}
+.sprite-nuclear__steam.s2 {
+  animation-delay: 0.7s;
+  left: 32%;
+}
+.sprite-nuclear__steam.s3 {
+  animation-delay: 1.3s;
+}
+@keyframes nuclear-steam {
+  0%   { opacity: 0.8; transform: translateX(-50%) translateY(0)    scale(1);   }
+  100% { opacity: 0;   transform: translateX(-50%) translateY(-16px) scale(2.5); }
+}
+.sprite-nuclear__dome {
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26%;
+  height: 20%;
+  background: #b0c8d4;
+  border-radius: 50% 50% 0 0;
+  border: 1.5px solid #7a9aaa;
+}
+.sprite-nuclear__base {
+  position: absolute;
+  bottom: 10%;
+  left: 0;
+  width: 100%;
+  height: 8%;
+  background: #4e6270;
+  border-radius: 2px;
+}
+
 /* ---- Géothermie ---- */
 .sprite-geo {
   position: relative;
