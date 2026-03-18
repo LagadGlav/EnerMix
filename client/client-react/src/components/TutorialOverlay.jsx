@@ -22,8 +22,8 @@ const STEPS = [
   },
   { // 3
     title: 'Ton tableau de bord 📊',
-    text: "Ce tableau à droite est ton centre de contrôle. Je vais te présenter chaque indicateur un par un — lis bien chaque écran !",
-    pos: 'center', highlight: 'hud-panel', pauseGame: true, btnLabel: 'Allons-y !',
+    text: "Ce tableau à droite est ton centre de contrôle. Je vais te présenter chaque indicateur un par un — lis bien chacune des aides !",
+    pos: 'panel', highlight: 'hud-panel', pauseGame: true, btnLabel: 'Allons-y !',
   },
   { // 4
     title: '💰 L\'argent et les taxes',
@@ -37,7 +37,7 @@ const STEPS = [
   },
   { // 6
     title: '🔋 Le stockage',
-    text: "Le barrage stocke l'énergie en surplus et la restitue automatiquement si tu tombes en déficit. Un stockage plein = sécurité pour les périodes de faible vent.",
+    text: "Le barrage stocke l'énergie en surplus et la restitue automatiquement si tu tombes en déficit. Un stockage plein = sécurité face aux imprévus.",
     pos: 'center', highlight: 'hud-storage', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 7
@@ -47,7 +47,7 @@ const STEPS = [
   },
   { // 8
     title: '☁️❤️ Pollution et santé',
-    text: "La pollution monte quand tu utilises du charbon et réduit la santé ❤️. Si la santé tombe à 0 → GAME OVER. Les éoliennes et barrages ne polluent pas du tout !",
+    text: "La pollution monte quand tu utilises du charbon et réduit la santé ❤️. Si la santé tombe à 0 → GAME OVER. Seules les mines et les centrales à charbon sont polluantes !",
     pos: 'center', highlight: 'hud-pollution', pauseGame: true, btnLabel: 'Compris !',
   },
   { // 9
